@@ -1,0 +1,5 @@
+The lxc collection ships a custom config generator
+for converting /etc/network/interfaces into /etc/systemd/network/*.network files.
+
+The rationale is bootup speed - networking.service takes about 1000ms on my machine,
+whereas config-gen + systemd-networkd only need a tenth of that (100ms).

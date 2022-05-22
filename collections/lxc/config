@@ -1,0 +1,2 @@
+# disable network interface renaming for containers
+OFEAT_IFNAMES=0

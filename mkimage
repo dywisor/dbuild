@@ -1,0 +1,11 @@
+#!/bin/sh
+# (wrapper script so that the git repo does not contain symlinks..)
+set -fu
+
+SCRIPT_CALLED="${BASH_SOURCE:-${0}}"
+SCRIPT_FILE="$( readlink -f "${SCRIPT_CALLED}" )" && \
+    [ -n "${SCRIPT_FILE}" ] || exit 8
+
+SCRIPT_DIR="${SCRIPT_FILE%/*}"
+
+exec "${SCRIPT_DIR}/build-scripts/mkimage.py" "${@}"
