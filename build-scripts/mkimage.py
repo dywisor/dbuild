@@ -6,7 +6,6 @@
 
 import argparse
 import collections
-import contextlib
 import datetime
 import os
 import pathlib
@@ -105,24 +104,22 @@ def main(prog, argv):
             pathlib.Path(os.path.abspath(arg_config.staging_dir))
         )
 
-        with pushd(staging_env.root):
-            os.makedirs(staging_env.root, exist_ok=True)
+        os.makedirs(staging_env.root, exist_ok=True)
 
-            main_init_staging_dir(cfg, staging_env)
-            main_run_build(cfg, staging_env, arg_config)
+        main_init_staging_dir(cfg, staging_env)
+        main_run_build(cfg, staging_env, arg_config)
 
-            main_run_publish(cfg, staging_env, arg_config)
+        main_run_publish(cfg, staging_env, arg_config)
 
     else:
         with tempfile.TemporaryDirectory() as tmpdir:
             staging_env = StagingEnv(pathlib.Path(os.path.abspath(tmpdir)))
 
-            with pushd(staging_env.root):
-                main_init_staging_dir(cfg, staging_env)
+            main_init_staging_dir(cfg, staging_env)
 
-                main_run_build(cfg, staging_env, arg_config)
+            main_run_build(cfg, staging_env, arg_config)
 
-                main_run_publish(cfg, staging_env, arg_config)
+            main_run_publish(cfg, staging_env, arg_config)
         # -- end with
     # -- end if
 # --- end of main (...) ---
@@ -200,18 +197,6 @@ def main_run_publish(cfg, staging_env, arg_config):
         dst_link.symlink_to(dst_file.name)
     # --
 # --- end of main_run_publish (...) ---
-
-
-@contextlib.contextmanager
-def pushd(dirpath):
-    old_cwd = os.getcwd()
-
-    os.chdir(dirpath)
-    try:
-        yield
-    finally:
-        os.chdir(old_cwd)
-# --- end of pushd (...) ---
 
 
 def load_config(filepath):
