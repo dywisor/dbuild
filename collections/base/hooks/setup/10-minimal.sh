@@ -23,6 +23,6 @@ if feat_all "${OFEAT_ROOTFS_MINIMAL:-0}"; then
 
     {
         hook_gen_dpkg_cfg_minimal | \
-            target_write_to_file "/etc/dpkg/dpkg.cfg.d/99minimal"
+            target_write_to_file "/etc/dpkg/dpkg.cfg.d/99minimal" 0644
     } || die
 fi
