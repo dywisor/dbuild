@@ -20,6 +20,27 @@ class RuntimeEnv(object):
         'customize',
     ]
 
+    ENV_KEEP = {
+        'TERM'      : 'linux',
+        'HOME'      : None,
+        'SHELL'     : '/bin/sh',
+        'USER'      : None,
+        'LOGNAME'   : None,
+        'PATH'      : None,
+        'TMPDIR'    : None,
+
+        # PYTHONPATH?
+        # PERL5LIB?
+    }
+
+    ENV_LANG = 'C.UTF-8'
+
+    ENV_DEFAULTS = {
+        'LANG'      : ENV_LANG,
+        'LANGUAGE'  : ENV_LANG,
+        'LC_ALL'    : ENV_LANG,
+    }
+
     def __init__(self):
         super().__init__()
         self.script_file_called = None
@@ -35,7 +56,25 @@ class RuntimeEnv(object):
 
         self.build_collections  = None
         self.mm_argv            = None
-    # ---
+
+        self.env                = None
+    # --- end of __init__ (...) ---
+
+    def build_env(self):
+        env = {}
+
+        for varname, fallback in self.ENV_KEEP.items():
+            try:
+                env[varname] = os.environ[varname]
+            except KeyError:
+                if fallback is not None:
+                    env[varname] = str(fallback)
+        # -- end for
+
+        env.update(self.ENV_DEFAULTS)
+
+        self.env = env
+    # --- end of build_env (...) ---
 
     def get_mm_cmdv(self, quiet=False):
         cmdv = ['mmdebstrap']
@@ -60,8 +99,10 @@ class RuntimeEnv(object):
         if 'cwd' not in kwargs:
             kwargs['cwd'] = str(self.staging_dir)
 
-        envp = dict(os.environ)
-        if env:
+        if not env:
+            envp = self.env
+        else:
+            envp = dict(self.env)
             envp.update(env)
         # --
 
@@ -121,6 +162,9 @@ def main(prog, argv):
             )
         )
     ))
+
+    # initialize environment vars for running commands (mmdebstrap, ...)
+    cfg.build_env()
 
     main_build_hooks(cfg)
     main_build_mmdebstrap_opts(cfg)
