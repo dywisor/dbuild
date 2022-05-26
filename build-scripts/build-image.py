@@ -52,6 +52,22 @@ class RuntimeEnv(object):
         return cmdv
     # --- end of get_mm_cmdv (...) ---
 
+    def run_cmd(
+        self, cmdv,
+        stdin=subprocess.DEVNULL, check=True, env=None,
+        **kwargs
+    ):
+        if 'cwd' not in kwargs:
+            kwargs['cwd'] = str(self.staging_dir)
+
+        envp = dict(os.environ)
+        if env:
+            envp.update(env)
+        # --
+
+        return subprocess.run(cmdv, stdin=stdin, check=check, env=envp, **kwargs)
+    # --- end of run_cmd (...) ---
+
 # --- end of RuntimeEnv ---
 
 
@@ -117,15 +133,9 @@ def main(prog, argv):
     # --
 
     with tempfile.TemporaryDirectory(dir=cfg.tmpdir_root) as tmpdir:
-        envp = dict(os.environ)
-        envp['TMPDIR'] = str(tmpdir)
-
-        subprocess.run(
+        cfg.run_cmd(
             mm_cmdv,
-            stdin=subprocess.DEVNULL,
-            cwd=str(tmpdir),
-            env=envp,
-            check=True
+            env={'TMPDIR': str(tmpdir)}
         )
 # --- end of main (...) ---
 
@@ -313,15 +323,10 @@ def main_build_mmdebstrap_opts(cfg):
         # dynamic package list
         pkg_list_script = bcol.root / 'package.list.sh'
         if os.path.isfile(pkg_list_script):  # racy, but OK
-            envp = dict(os.environ)
-            envp.update(cfg.vmap)
-
-            proc = subprocess.run(
+            proc = cfg.run_cmd(
                 [pkg_list_script],
-                env=envp,
-                stdin=subprocess.DEVNULL,
-                capture_output=True,
-                check=True
+                env=cfg.vmap,   # export whole config as env vars
+                capture_output=True
             )
 
             pkg_list.update((
