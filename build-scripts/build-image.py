@@ -11,7 +11,7 @@ import sys
 import tempfile
 
 
-class RuntimeConfig(object):
+class RuntimeEnv(object):
 
     HOOK_PHASES = [
         'setup',
@@ -52,7 +52,7 @@ class RuntimeConfig(object):
         return cmdv
     # --- end of get_mm_cmdv (...) ---
 
-# --- end of RuntimeConfig ---
+# --- end of RuntimeEnv ---
 
 
 class BuildCollectionInfo(object):
@@ -75,7 +75,7 @@ class BuildCollectionInfo(object):
 
 
 def main(prog, argv):
-    cfg = RuntimeConfig()
+    cfg = RuntimeEnv()
     cfg.script_file_called  = pathlib.Path(os.path.abspath(__file__))
     cfg.script_file         = pathlib.Path(os.path.realpath(cfg.script_file_called))
     cfg.staging_dir         = cfg.script_file_called.parent
