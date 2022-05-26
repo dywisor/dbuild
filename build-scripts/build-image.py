@@ -36,10 +36,6 @@ class RuntimeEnv(object):
         self.mm_argv            = None
     # --- end of __init__ (...) ---
 
-    @property
-    def tmpdir_root(self):
-        return self.staging.tmpdir_root
-
     def get_mm_cmdv(self, quiet=False):
         cmdv = ['mmdebstrap']
 
@@ -59,6 +55,8 @@ class RuntimeEnv(object):
 
 
 class StagingEnv(object):
+
+    CWD_TMPDIR = object()
 
     ENV_KEEP = {
         'TERM'      : 'linux',
@@ -107,22 +105,47 @@ class StagingEnv(object):
         return env
     # --- end of build_env (...) ---
 
+    def get_tmpdir(self):
+        return tempfile.TemporaryDirectory(dir=self.tmpdir_root)
+    # --- end of get_tmpdir (...) ---
+
     def run_cmd(
         self, cmdv,
-        stdin=subprocess.DEVNULL, check=True, env=None,
+        stdin=subprocess.DEVNULL, check=True, cwd=None, env=None,
         **kwargs
     ):
-        if 'cwd' not in kwargs:
-            kwargs['cwd'] = str(self.root)
-
-        if not env:
-            envp = self.env
-        else:
-            envp = dict(self.env)
+        envp = dict(self.env)
+        if env:
             envp.update(env)
         # --
 
-        return subprocess.run(cmdv, stdin=stdin, check=check, env=envp, **kwargs)
+        if cwd is self.CWD_TMPDIR:
+            # run in tmpdir
+            with self.get_tmpdir() as tmpdir:
+                envp['TMPDIR'] = str(tmpdir)
+
+                proc = subprocess.run(
+                    cmdv,
+                    stdin=stdin, cwd=str(tmpdir), env=envp,
+                    check=check,
+                    **kwargs
+                )
+            # -- end with
+
+        else:
+            if not cwd:
+                cwd = self.root
+            # --
+
+            proc = subprocess.run(
+                cmdv,
+                stdin=stdin, cwd=str(cwd), env=envp,
+                check=check,
+                **kwargs
+            )
+        # --
+
+        return proc
     # --- end of run_cmd (...) ---
 
 # --- end of StagingEnv ---
@@ -191,11 +214,7 @@ def main(prog, argv):
         return True
     # --
 
-    with tempfile.TemporaryDirectory(dir=cfg.tmpdir_root) as tmpdir:
-        cfg.staging.run_cmd(
-            mm_cmdv,
-            env={'TMPDIR': str(tmpdir)}
-        )
+    cfg.staging.run_cmd(mm_cmdv, cwd=StagingEnv.CWD_TMPDIR)
 # --- end of main (...) ---
 
 
