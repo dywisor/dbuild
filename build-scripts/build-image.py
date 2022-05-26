@@ -20,6 +20,54 @@ class RuntimeEnv(object):
         'customize',
     ]
 
+    def __init__(self):
+        super().__init__()
+        self.script_file_called = None
+        self.script_file        = None
+        self.project_root       = None
+        self.project_share_dir  = None
+        self.vmap               = None
+
+        self.staging            = None
+        self.config_file        = None
+        self.tar_outfile        = None
+
+        self.build_collections  = None
+        self.mm_argv            = None
+    # --- end of __init__ (...) ---
+
+    @property
+    def staging_dir(self):
+        return self.staging.root
+
+    @property
+    def staging_hook_dir(self):
+        return self.staging.hook_dir
+
+    @property
+    def tmpdir_root(self):
+        return self.staging.tmpdir_root
+
+    def get_mm_cmdv(self, quiet=False):
+        cmdv = ['mmdebstrap']
+
+        if quiet:
+            cmdv.append('--quiet')
+
+        if self.mm_argv:
+            cmdv.extend(self.mm_argv)
+
+        cmdv.append(self.vmap['DBUILD_TARGET_CODENAME'])
+        cmdv.append(str(self.tar_outfile))
+
+        return cmdv
+    # --- end of get_mm_cmdv (...) ---
+
+# --- end of RuntimeEnv ---
+
+
+class StagingEnv(object):
+
     ENV_KEEP = {
         'TERM'      : 'linux',
         'HOME'      : None,
@@ -41,23 +89,14 @@ class RuntimeEnv(object):
         'LC_ALL'    : ENV_LANG,
     }
 
-    def __init__(self):
+    def __init__(self, staging_dir):
         super().__init__()
-        self.script_file_called = None
-        self.script_file        = None
-        self.staging_dir        = None
-        self.config_file        = None
-        self.project_root       = None
-        self.project_share_dir  = None
-        self.vmap               = None
-        self.tmpdir_root        = None
-        self.staging_hook_dir   = None
-        self.tar_outfile        = None
+        self.root = staging_dir
+        self.hook_dir = (self.root / 'hooks')
 
-        self.build_collections  = None
-        self.mm_argv            = None
+        self.tmpdir_root = (self.root / 'tmp')
 
-        self.env                = None
+        self.env  = self.build_env()
     # --- end of __init__ (...) ---
 
     def build_env(self):
@@ -73,23 +112,8 @@ class RuntimeEnv(object):
 
         env.update(self.ENV_DEFAULTS)
 
-        self.env = env
+        return env
     # --- end of build_env (...) ---
-
-    def get_mm_cmdv(self, quiet=False):
-        cmdv = ['mmdebstrap']
-
-        if quiet:
-            cmdv.append('--quiet')
-
-        if self.mm_argv:
-            cmdv.extend(self.mm_argv)
-
-        cmdv.append(self.vmap['DBUILD_TARGET_CODENAME'])
-        cmdv.append(str(self.tar_outfile))
-
-        return cmdv
-    # --- end of get_mm_cmdv (...) ---
 
     def run_cmd(
         self, cmdv,
@@ -97,7 +121,7 @@ class RuntimeEnv(object):
         **kwargs
     ):
         if 'cwd' not in kwargs:
-            kwargs['cwd'] = str(self.staging_dir)
+            kwargs['cwd'] = str(self.root)
 
         if not env:
             envp = self.env
@@ -109,7 +133,7 @@ class RuntimeEnv(object):
         return subprocess.run(cmdv, stdin=stdin, check=check, env=envp, **kwargs)
     # --- end of run_cmd (...) ---
 
-# --- end of RuntimeEnv ---
+# --- end of StagingEnv ---
 
 
 class BuildCollectionInfo(object):
@@ -135,20 +159,22 @@ def main(prog, argv):
     cfg = RuntimeEnv()
     cfg.script_file_called  = pathlib.Path(os.path.abspath(__file__))
     cfg.script_file         = pathlib.Path(os.path.realpath(cfg.script_file_called))
-    cfg.staging_dir         = cfg.script_file_called.parent
     cfg.project_root        = cfg.script_file.parent.parent
     cfg.project_share_dir   = cfg.project_root / 'share'
 
     arg_parser              = get_arg_parser(prog)
     arg_config              = arg_parser.parse_args(argv)
 
-    cfg.config_file         = cfg.staging_dir / 'config'
+    cfg.staging             = StagingEnv(cfg.script_file_called.parent)
+
+    cfg.config_file         = (cfg.staging.root / 'config')
     cfg.vmap                = load_config(cfg.config_file)
 
-    cfg.tmpdir_root         = (cfg.vmap.get('DBUILD_TMPDIR_ROOT', None) or cfg.staging_dir)
+    cfg.tar_outfile         = (cfg.staging.root / 'deb.tar.zst')
 
-    cfg.staging_hook_dir    = cfg.staging_dir / 'hooks'
-    cfg.tar_outfile         = cfg.staging_dir / 'deb.tar.zst'
+
+    if cfg.vmap.get('DBUILD_TMPDIR_ROOT'):
+        cfg.staging.tmpdir_root = cfg.vmap['DBUILD_TMPDIR_ROOT']
 
     cfg.build_collections   = collections.OrderedDict((
         (
@@ -163,9 +189,6 @@ def main(prog, argv):
         )
     ))
 
-    # initialize environment vars for running commands (mmdebstrap, ...)
-    cfg.build_env()
-
     main_build_hooks(cfg)
     main_build_mmdebstrap_opts(cfg)
 
@@ -177,7 +200,7 @@ def main(prog, argv):
     # --
 
     with tempfile.TemporaryDirectory(dir=cfg.tmpdir_root) as tmpdir:
-        cfg.run_cmd(
+        cfg.staging.run_cmd(
             mm_cmdv,
             env={'TMPDIR': str(tmpdir)}
         )
@@ -367,7 +390,7 @@ def main_build_mmdebstrap_opts(cfg):
         # dynamic package list
         pkg_list_script = bcol.root / 'package.list.sh'
         if os.path.isfile(pkg_list_script):  # racy, but OK
-            proc = cfg.run_cmd(
+            proc = cfg.staging.run_cmd(
                 [pkg_list_script],
                 env=cfg.vmap,   # export whole config as env vars
                 capture_output=True
