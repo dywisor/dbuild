@@ -39,6 +39,16 @@ class RuntimeConfig(object):
 # --- end of RuntimeConfig ---
 
 
+class StagingEnv(object):
+
+    def __init__(self, staging_dir):
+        super().__init__()
+        self.root = staging_dir
+    # --- end of __init__ (...) ---
+
+# --- end of StagingEnv ---
+
+
 def main(prog, argv):
     cfg = RuntimeConfig()
     cfg.script_file_called  = pathlib.Path(os.path.abspath(__file__))
@@ -79,36 +89,38 @@ def main(prog, argv):
     ))
 
     if arg_config.staging_dir:
-        staging_dir = pathlib.Path(os.path.abspath(arg_config.staging_dir))
+        staging_env = StagingEnv(
+            pathlib.Path(os.path.abspath(arg_config.staging_dir))
+        )
 
-        with pushd(staging_dir):
-            os.makedirs(staging_dir, exist_ok=True)
+        with pushd(staging_env.root):
+            os.makedirs(staging_env.root, exist_ok=True)
 
-            main_init_staging_dir(cfg, staging_dir)
-            main_run_build(cfg, staging_dir, arg_config)
+            main_init_staging_dir(cfg, staging_env)
+            main_run_build(cfg, staging_env, arg_config)
 
-            main_run_publish(cfg, staging_dir, arg_config)
+            main_run_publish(cfg, staging_env, arg_config)
 
     else:
         with tempfile.TemporaryDirectory() as tmpdir:
-            staging_dir = pathlib.Path(os.path.abspath(tmpdir))
+            staging_env = StagingEnv(pathlib.Path(os.path.abspath(tmpdir)))
 
-            with pushd(staging_dir):
-                main_init_staging_dir(cfg, staging_dir)
+            with pushd(staging_env.root):
+                main_init_staging_dir(cfg, staging_env)
 
-                main_run_build(cfg, staging_dir, arg_config)
+                main_run_build(cfg, staging_env, arg_config)
 
-                main_run_publish(cfg, staging_dir, arg_config)
+                main_run_publish(cfg, staging_env, arg_config)
         # -- end with
     # -- end if
 # --- end of main (...) ---
 
 
-def main_init_staging_dir(cfg, staging_dir):
+def main_init_staging_dir(cfg, staging_env):
     #> create script links in staging dir
     for script_name in ['build-image.py']:
         real_script = cfg.project_scripts_dir / script_name
-        script_link = staging_dir / script_name
+        script_link = staging_env.root / script_name
 
         try:
             os.unlink(script_link)
@@ -132,22 +144,22 @@ def main_init_staging_dir(cfg, staging_dir):
 
     merge_config_cmdv = [
         str(cfg.project_scripts_dir / 'merge-config.py'),
-        '-o', str(staging_dir / 'config')
+        '-o', str(staging_env.root / 'config')
     ]
     merge_config_cmdv.extend(map(str, config_files))
 
     subprocess.run(
         merge_config_cmdv,
         stdin=subprocess.DEVNULL,
-        cwd=str(staging_dir),
+        cwd=str(staging_env.root),
         check=True
     )
 # --- end of main_init_staging_dir (...) ---
 
 
-def main_run_build(cfg, staging_dir, arg_config):
+def main_run_build(cfg, staging_env, arg_config):
     cmdv = [
-        str(staging_dir / 'build-image.py'),
+        str(staging_env.root / 'build-image.py'),
     ]
 
     if arg_config.dry_run:
@@ -157,16 +169,16 @@ def main_run_build(cfg, staging_dir, arg_config):
     subprocess.run(
         cmdv,
         stdin=subprocess.DEVNULL,
-        cwd=str(staging_dir),
+        cwd=str(staging_env.root),
         check=True
     )
 # --- end of main_run_build (...) ---
 
 
-def main_run_publish(cfg, staging_dir, arg_config):
+def main_run_publish(cfg, staging_env, arg_config):
     timestamp  = datetime.datetime.now().strftime("%Y-%m-%d_%s")
     images_dir = cfg.images_root / cfg.profile_config_name
-    src_file   = staging_dir / 'deb.tar.zst'
+    src_file   = staging_env.root / 'deb.tar.zst'
     dst_file   = images_dir / f'{cfg.profile_config_name}_{timestamp}.tar.zst'
     dst_link   = images_dir / f'{cfg.profile_config_name}.tar.zst'
 
