@@ -83,6 +83,7 @@ class StagingEnv(object):
         super().__init__()
         self.root = staging_dir
         self.hook_dir = (self.root / 'hooks')
+        self.images_root = (self.root / 'images')
 
         self.tmpdir_root = (self.root / 'tmp')
 
@@ -185,7 +186,7 @@ def main(prog, argv):
     cfg.config_file         = (cfg.staging.root / 'config')
     cfg.vmap                = load_config(cfg.config_file)
 
-    cfg.tar_outfile         = (cfg.staging.root / 'deb.tar.zst')
+    cfg.tar_outfile         = (cfg.staging.images_root / 'deb.tar.zst')
 
 
     if cfg.vmap.get('DBUILD_TMPDIR_ROOT'):
@@ -222,6 +223,7 @@ def main(prog, argv):
 def main_init_staging_dir(cfg):
     #> create directories (may already exist)
     for dirpath in [
+        cfg.staging.images_root,
         cfg.staging.tmpdir_root,
     ]:
         os.makedirs(dirpath, exist_ok=True)

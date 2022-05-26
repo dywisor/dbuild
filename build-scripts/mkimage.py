@@ -44,6 +44,7 @@ class StagingEnv(object):
     def __init__(self, staging_dir):
         super().__init__()
         self.root = staging_dir
+        self.images_root = (staging_dir / 'images')
     # --- end of __init__ (...) ---
 
     def run_cmd(
@@ -179,7 +180,7 @@ def main_run_build(cfg, staging_env, arg_config):
 def main_run_publish(cfg, staging_env, arg_config):
     timestamp  = datetime.datetime.now().strftime("%Y-%m-%d_%s")
     images_dir = cfg.images_root / cfg.profile_config_name
-    src_file   = staging_env.root / 'deb.tar.zst'
+    src_file   = staging_env.images_root / 'deb.tar.zst'
     dst_file   = images_dir / f'{cfg.profile_config_name}_{timestamp}.tar.zst'
     dst_link   = images_dir / f'{cfg.profile_config_name}.tar.zst'
 
