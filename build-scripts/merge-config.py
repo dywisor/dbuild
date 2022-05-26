@@ -63,7 +63,7 @@ def main(prog, argv):
 
     else:
         output_config = '\n'.join((
-            '{name}={value}'.format(name=name, value=shlex.quote(value))
+            '{name}={value}'.format(name=name, value=shell_quote(value))
             for name, value in sorted(vmap.items(), key=lambda kv: kv[0])
         ))
 
@@ -98,6 +98,16 @@ def main_get_arg_parser(prog):
 
     return parser
 # --- end of main_get_arg_parser (...) ---
+
+
+def shell_quote(s):
+    """
+    Encloses the input string in quotes,
+    even if not strictly necessary for shell usage.
+    """
+
+    return ("'" + s.replace("'", "'\"'\"'") + "'")
+# --- end of shell_quote (...) ---
 
 
 def gen_parse_infile(infile):
