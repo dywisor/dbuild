@@ -204,6 +204,7 @@ def main(prog, argv):
         )
     ))
 
+    main_init_staging_dir(cfg)
     main_build_hooks(cfg)
     main_build_mmdebstrap_opts(cfg)
 
@@ -216,6 +217,16 @@ def main(prog, argv):
 
     cfg.staging.run_cmd(mm_cmdv, cwd=StagingEnv.CWD_TMPDIR)
 # --- end of main (...) ---
+
+
+def main_init_staging_dir(cfg):
+    #> create directories (may already exist)
+    for dirpath in [
+        cfg.staging.tmpdir_root,
+    ]:
+        os.makedirs(dirpath, exist_ok=True)
+    # --
+# --- end of main_init_staging_dir (...) ---
 
 
 def main_build_hooks(cfg):
