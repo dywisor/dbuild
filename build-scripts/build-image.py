@@ -37,14 +37,6 @@ class RuntimeEnv(object):
     # --- end of __init__ (...) ---
 
     @property
-    def staging_dir(self):
-        return self.staging.root
-
-    @property
-    def staging_hook_dir(self):
-        return self.staging.hook_dir
-
-    @property
     def tmpdir_root(self):
         return self.staging.tmpdir_root
 
@@ -255,11 +247,11 @@ def main_build_hooks(cfg):
         # -- end if
     # -- end for
 
-    os.makedirs(cfg.staging_hook_dir, exist_ok=True)
+    os.makedirs(cfg.staging.hook_dir, exist_ok=True)
 
     # write hook scripts
     for hook_phase, hook_list in sorted(hook_files_map.items(), key=lambda kv: kv[0]):
-        hook_script = cfg.staging_hook_dir / f'{hook_phase}.sh'
+        hook_script = cfg.staging.hook_dir / f'{hook_phase}.sh'
 
         with open(hook_script, 'wt') as outfh:
             #> base script
@@ -372,7 +364,7 @@ def main_build_mmdebstrap_opts(cfg):
         '--components={}'.format(cfg.vmap['DBUILD_TARGET_COMPONENTS']),
         '--architectures={}'.format(cfg.vmap['DBUILD_TARGET_ARCH']),
 
-        '--hook-directory={}'.format(cfg.staging_hook_dir),
+        '--hook-directory={}'.format(cfg.staging.hook_dir),
     ]
 
     for bcol in cfg.build_collections.values():
