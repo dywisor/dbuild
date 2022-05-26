@@ -16,5 +16,5 @@ EOF
 
 {
     hook_gen_apt_config | \
-        target_write_to_file "/etc/apt/apt.conf.d/99mmdebstrap-local"
+        target_write_to_file "/etc/apt/apt.conf.d/99mmdebstrap-local" 0644
 } || die
