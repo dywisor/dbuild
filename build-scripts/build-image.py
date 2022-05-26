@@ -205,6 +205,8 @@ def main(prog, argv):
         )
     ))
 
+    main_init_staging_env(cfg)
+
     main_init_staging_dir(cfg)
     main_build_hooks(cfg)
     main_build_mmdebstrap_opts(cfg)
@@ -218,6 +220,16 @@ def main(prog, argv):
 
     cfg.staging.run_cmd(mm_cmdv, cwd=StagingEnv.CWD_TMPDIR)
 # --- end of main (...) ---
+
+
+def main_init_staging_env(cfg):
+    extra_env = {}
+
+    extra_env['DBUILD_STAGING_ROOT'] = str(cfg.staging.root)
+    extra_env['DBUILD_STAGING_IMG']  = str(cfg.staging.images_root)
+
+    cfg.staging.env.update(extra_env)
+# --- end of main_init_staging_env (...) ---
 
 
 def main_init_staging_dir(cfg):
