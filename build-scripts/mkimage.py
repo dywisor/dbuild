@@ -46,6 +46,17 @@ class StagingEnv(object):
         self.root = staging_dir
     # --- end of __init__ (...) ---
 
+    def run_cmd(
+        self, cmdv,
+        stdin=subprocess.DEVNULL, check=True,
+        **kwargs
+    ):
+        if 'cwd' not in kwargs:
+            kwargs['cwd'] = str(self.root)
+
+        return subprocess.run(cmdv, stdin=stdin, check=check, **kwargs)
+    # --- end of run_cmd (...) ---
+
 # --- end of StagingEnv ---
 
 
@@ -148,12 +159,7 @@ def main_init_staging_dir(cfg, staging_env):
     ]
     merge_config_cmdv.extend(map(str, config_files))
 
-    subprocess.run(
-        merge_config_cmdv,
-        stdin=subprocess.DEVNULL,
-        cwd=str(staging_env.root),
-        check=True
-    )
+    staging_env.run_cmd(merge_config_cmdv)
 # --- end of main_init_staging_dir (...) ---
 
 
@@ -166,12 +172,7 @@ def main_run_build(cfg, staging_env, arg_config):
         cmdv.append('-n')
     # --
 
-    subprocess.run(
-        cmdv,
-        stdin=subprocess.DEVNULL,
-        cwd=str(staging_env.root),
-        check=True
-    )
+    staging_env.run_cmd(cmdv)
 # --- end of main_run_build (...) ---
 
 
