@@ -189,7 +189,7 @@ def main(prog, argv):
     cfg.config_file         = (cfg.staging.root / 'config')
     cfg.vmap                = load_config(cfg.config_file)
 
-    cfg.tar_outfile         = (cfg.staging.images_root / 'deb.tar.zst')
+    cfg.tar_outfile         = (cfg.staging.images_root / 'rootfs.tar.zst')
 
 
     if cfg.vmap.get('DBUILD_TMPDIR_ROOT'):
