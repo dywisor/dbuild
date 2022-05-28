@@ -1,0 +1,5 @@
+linux-image-amd64
+initramfs-tools
+zstd
+busybox
+grub-efi-amd64
