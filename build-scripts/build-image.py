@@ -24,6 +24,7 @@ class RuntimeEnv(object):
         super().__init__()
         self.script_file_called = None
         self.script_file        = None
+        self.script_dir         = None
         self.project_root       = None
         self.project_share_dir  = None
         self.vmap               = None
@@ -176,7 +177,8 @@ def main(prog, argv):
     cfg = RuntimeEnv()
     cfg.script_file_called  = pathlib.Path(os.path.abspath(__file__))
     cfg.script_file         = pathlib.Path(os.path.realpath(cfg.script_file_called))
-    cfg.project_root        = cfg.script_file.parent.parent
+    cfg.script_dir          = cfg.script_file.parent
+    cfg.project_root        = cfg.script_dir.parent
     cfg.project_share_dir   = cfg.project_root / 'share'
 
     arg_parser              = get_arg_parser(prog)
@@ -225,6 +227,8 @@ def main(prog, argv):
 
 def main_init_staging_env(cfg):
     extra_env = {}
+
+    extra_env['DBUILD_BUILD_SCRIPTS'] = str(cfg.script_dir)
 
     extra_env['DBUILD_STAGING_ROOT'] = str(cfg.staging.root)
     extra_env['DBUILD_STAGING_IMG']  = str(cfg.staging.images_root)
