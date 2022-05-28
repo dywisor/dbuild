@@ -198,6 +198,9 @@ OFEAT_ANSIBLE_CTRL=0
 # System Configuration
 # --------------------
 
+# Hostname
+OCONF_HOSTNAME='staging'
+
 # Keyboard Layout
 #
 #   Examples: us
