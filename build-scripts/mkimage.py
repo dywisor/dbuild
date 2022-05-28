@@ -175,27 +175,40 @@ def main_run_build(cfg, staging_env, arg_config):
 
 
 def main_run_publish(cfg, staging_env, arg_config):
+    if arg_config.dry_run:
+        # nothing to be seen in dry run mode
+        return
+    # --
+
     timestamp  = datetime.datetime.now().strftime("%Y-%m-%d_%s")
     images_dir = cfg.images_root / cfg.profile_config_name
-    src_file   = staging_env.images_root / 'deb.tar.zst'
-    dst_file   = images_dir / f'{cfg.profile_config_name}_{timestamp}.tar.zst'
-    dst_link   = images_dir / f'{cfg.profile_config_name}.tar.zst'
 
-    if arg_config.dry_run:
-        sys.stdout.write(f'Would publish image as {dst_file}\n')
+    with os.scandir(staging_env.images_root) as dir_it:
+        for entry in dir_it:
+            if not entry.name.startswith('.') and entry.is_file():
+                src_file = pathlib.Path(entry.path)
+                suffixes = ''.join(src_file.suffixes)
+                name     = src_file.name[:-len(suffixes)]
 
-    else:
-        sys.stdout.write(f'Publishing image: {dst_file}\n')
-        os.makedirs(images_dir, exist_ok=True)
-        shutil.move(src_file, dst_file)
+                dst_fname = f'{cfg.profile_config_name}_{name}_{timestamp}{suffixes}'
+                dst_lname = f'{cfg.profile_config_name}_{name}{suffixes}'
 
-        try:
-            os.unlink(dst_link)
-        except FileNotFoundError:
-            pass
+                dst_file  = images_dir / dst_fname
+                dst_link  = images_dir / dst_lname
 
-        dst_link.symlink_to(dst_file.name)
-    # --
+                sys.stdout.write(f'Publishing image: {dst_file}\n')
+                os.makedirs(images_dir, exist_ok=True)
+                shutil.move(src_file, dst_file)
+
+                try:
+                    os.unlink(dst_link)
+                except FileNotFoundError:
+                    pass
+
+                dst_link.symlink_to(dst_file.name)
+            # -- end if
+        # -- end for
+    # -- end with
 # --- end of main_run_publish (...) ---
 
 
