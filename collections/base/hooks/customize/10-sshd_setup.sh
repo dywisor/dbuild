@@ -30,7 +30,7 @@ sshd_setup_create_host_keys() {
     for key_type in ${SSHD_HOST_KEY_TYPES:?}; do
         key_file="${TARGET_ROOTFS:?}/${SSHD_CONFDIR}/ssh_host_${key_type}_key"
 
-        set -- -N '' -t "${key_type}" -f "${key_file}"
+        set -- -N '' -C "root@${OCONF_HOSTNAME:-staging}" -t "${key_type}" -f "${key_file}"
 
         case "${key_type}" in
             'rsa') set -- "${@}" -b '4096' ;;
