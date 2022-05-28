@@ -86,6 +86,7 @@ class StagingEnv(object):
         self.images_root = (self.root / 'images')
 
         self.tmpdir_root = (self.root / 'tmp')
+        self.tmp_dir = self.tmpdir_root
 
         self.env  = self.build_env()
     # --- end of __init__ (...) ---
@@ -227,6 +228,7 @@ def main_init_staging_env(cfg):
 
     extra_env['DBUILD_STAGING_ROOT'] = str(cfg.staging.root)
     extra_env['DBUILD_STAGING_IMG']  = str(cfg.staging.images_root)
+    extra_env['DBUILD_STAGING_TMP']  = str(cfg.staging.tmp_dir)
 
     cfg.staging.env.update(extra_env)
 # --- end of main_init_staging_env (...) ---
@@ -237,6 +239,7 @@ def main_init_staging_dir(cfg):
     for dirpath in [
         cfg.staging.images_root,
         cfg.staging.tmpdir_root,
+        cfg.staging.tmp_dir,
     ]:
         os.makedirs(dirpath, exist_ok=True)
     # --
