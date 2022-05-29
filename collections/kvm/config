@@ -1,0 +1,2 @@
+# the kvm collection creates a custom disk image, tar not needed
+DBUILD_TARGET_IMAGE_FORMAT='null'

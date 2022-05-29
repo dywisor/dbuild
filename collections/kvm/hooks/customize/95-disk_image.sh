@@ -4,6 +4,14 @@ esp_partuuid=
 read -r esp_partuuid < "${DBUILD_STAGING_TMP:?}/partuuid.esp" \
     && [ -n "${esp_partuuid}" ] || die "Failed to read esp partuuid"
 
+swap_partuuid=
+read -r swap_partuuid < "${DBUILD_STAGING_TMP:?}/partuuid.swap" \
+    && [ -n "${swap_partuuid}" ] || die "Failed to read swap partuuid"
+
+swap_uuid=
+read -r swap_uuid < "${DBUILD_STAGING_TMP:?}/uuid.swap" \
+    && [ -n "${swap_uuid}" ] || die "Failed to read swap uuid"
+
 rootfs_partuuid=
 read -r rootfs_partuuid < "${DBUILD_STAGING_TMP:?}/partuuid.rootfs" \
     && [ -n "${rootfs_partuuid}" ] || die "Failed to read rootfs partuuid"
@@ -19,13 +27,20 @@ autodie rm -f -- "${genimage_config}"
 {
 < "${genimage_config_template}" > "${genimage_config}" sed -r \
     -e "s=@@ESP_PARTUUID@@=${esp_partuuid}=g" \
+    -e "s=@@SWAP_PARTUUID@@=${swap_partuuid}=g" \
     -e "s=@@ROOTFS_PARTUUID@@=${rootfs_partuuid}=g" \
     -e "s=@@ROOTFS_UUID@@=${rootfs_uuid}=g"
 } || die "Failed to generate genimage config"
 
+
+print_action "Creating swap space"
+autodie truncate --size=536870912 "${DBUILD_STAGING_TMP:?}/swap.img"
+autodie mkswap -L swap -U "${swap_uuid}" "${DBUILD_STAGING_TMP:?}/swap.img"
+
 print_action "Building disk image"
 autodie genimage \
     --rootpath      "${TARGET_ROOTFS:?}" \
+    --inputpath     "${DBUILD_STAGING_TMP:?}" \
     --outputpath    "${DBUILD_STAGING_TMP:?}" \
     --config        "${genimage_config}"
 
