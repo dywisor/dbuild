@@ -29,6 +29,9 @@ Host dependencies:
   - ``rsync``
   - ``systemctl`` (for systemd targets)
   - ``qemu-user`` (for cross-arch targets)
+  - *optional*: genimage (for building disk images)
+    See [pengutronix/genimage](https://github.com/pengutronix/genimage)
+    and [dywisor/genimage-debian](https://github.com/dywisor/genimage-debian/tree/debian/stable/debian) for building a ``.deb``
   - *optional*: web proxy for caching ``.deb`` downloads, e.g. ``apt-cacher-ng`` or ``squid``
 
 Example usage:
