@@ -3,12 +3,20 @@
 
 import argparse
 import collections
+import enum
 import os
 import pathlib
 import shlex
 import subprocess
 import sys
 import tempfile
+
+
+@enum.unique
+class TargetImageFormat(enum.Enum):
+    FMT_TAR  = 'tar'
+    FMT_NULL = 'null'
+# --- end of TargetImageFormat ---
 
 
 class RuntimeEnv(object):
@@ -28,16 +36,18 @@ class RuntimeEnv(object):
         self.project_root       = None
         self.project_share_dir  = None
         self.vmap               = None
+        self.target_format      = None
 
         self.staging            = None
         self.config_file        = None
-        self.tar_outfile        = None
 
         self.build_collections  = None
         self.mm_argv            = None
     # --- end of __init__ (...) ---
 
     def get_mm_cmdv(self, quiet=False):
+        target_format = self.target_format  # ref
+
         cmdv = ['mmdebstrap']
 
         if quiet:
@@ -46,8 +56,22 @@ class RuntimeEnv(object):
         if self.mm_argv:
             cmdv.extend(self.mm_argv)
 
+        if target_format == TargetImageFormat.FMT_NULL:
+            cmdv.append('--format=tar')   # mmdebstrap < 0.8.0 compat FIXME
+        else:
+            cmdv.append(f'--format={target_format.value}')
+
         cmdv.append(self.vmap['DBUILD_TARGET_CODENAME'])
-        cmdv.append(str(self.tar_outfile))
+
+        if target_format == TargetImageFormat.FMT_TAR:
+            tar_outfile = (self.staging.images_root / 'rootfs.tar.zst')
+            cmdv.append(str(tar_outfile))
+
+        elif target_format == TargetImageFormat.FMT_NULL:
+            # mmdebstrap < 0.8.0 compat FIXME
+            tar_outfile = (self.staging.tmp_dir / 'rootfs.tar.zst')
+            cmdv.append(str(tar_outfile))
+        # --
 
         return cmdv
     # --- end of get_mm_cmdv (...) ---
@@ -189,8 +213,16 @@ def main(prog, argv):
     cfg.config_file         = (cfg.staging.root / 'config')
     cfg.vmap                = load_config(cfg.config_file)
 
-    cfg.tar_outfile         = (cfg.staging.images_root / 'rootfs.tar.zst')
+    target_format_str = (
+        cfg.vmap.get('DBUILD_TARGET_IMAGE_FORMAT', None) or 'tar'
+    )
 
+    try:
+        cfg.target_format = TargetImageFormat(target_format_str)
+    except ValueError:
+        sys.stderr.write(f"Invalid target image format config: {target_format_str}\n")
+        return 2
+    # --
 
     if cfg.vmap.get('DBUILD_TMPDIR_ROOT'):
         cfg.staging.tmpdir_root = cfg.vmap['DBUILD_TMPDIR_ROOT']
@@ -409,7 +441,6 @@ def main_build_mmdebstrap_opts(cfg):
     # build mmdebstrap opts
     cfg.mm_argv = [
         '--mode=fakechroot',
-        '--format=tar',
 
         '--variant={}'.format(cfg.vmap['DBUILD_TARGET_VARIANT']),
         '--components={}'.format(cfg.vmap['DBUILD_TARGET_COMPONENTS']),

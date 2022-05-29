@@ -52,6 +52,17 @@ DBUILD_TARGET_COLLECTIONS=''
 #
 DBUILD_TARGET_INIT_SYSTEM='unknown'
 
+# Output image format
+#
+# Choose from: tar, null
+#
+# When using the 'null' output format, one (or more)
+# collections are responsible for creating output image(s).
+#
+# Defaults to 'tar'.
+#
+DBUILD_TARGET_IMAGE_FORMAT='tar'
+
 
 # User Accounts
 # -------------
