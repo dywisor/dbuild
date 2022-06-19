@@ -12,11 +12,11 @@ if ! feat_all "${OFEAT_SSHD_CONFIG:-0}"; then
 
 fi
 
-# always disable ssh.socket for systemd hosts
+# always block ssh.socket for systemd hosts
 #   OFEAT_SSHD_CONFIG=0: should not socket-activate ssh then
 #   OFEAT_SSHD_CONFIG=1: blocks the regular ssh daemon in favor of per-client sessions
 if target_is_systemd; then
-    autodie target_disable_svc ssh.socket
+    autodie target_mask_svc ssh.socket
 fi
 
 #> cron
