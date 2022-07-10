@@ -1,0 +1,2 @@
+# disable resume from swap partition
+RESUME=none
