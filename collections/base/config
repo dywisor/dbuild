@@ -261,3 +261,21 @@ OFEAT_CRON=1
 #   For systemd hosts, only a volatile journal will be configured.
 #
 OFEAT_RSYSLOG=0
+
+# Whether to generate /etc/resolv.conf
+#
+#   Note that disabling this will remove /etc/resolv.conf
+#
+OFEAT_RESOLV_CONF=1
+
+# List of nameservers for /etc/resolv.conf
+# (if OFEAT_RESOLV_CONF is set to 1)
+#
+#   Must not be empty when OFEAT_RESOLV_CONF is enabled.
+#   The setting below uses the servers from OpenDNS.
+#
+OCONF_RESOLV_CONF_NS='208.67.222.222 208.67.220.220'
+
+# List of search domains for /etc/resolv.conf
+# (if OFEAT_RESOLV_CONF is set to 1)
+OCONF_RESOLV_CONF_SEARCH=''

@@ -13,9 +13,6 @@ EOF
 # remove /etc/hostname
 autodie rm -- "${TARGET_ROOTFS:?}/etc/hostname"
 
-# remove /etc/resolv.conf
-autodie rm -- "${TARGET_ROOTFS:?}/etc/resolv.conf"
-
 
 # remove /etc/machine-id (if present)
 if [ -e "${TARGET_ROOTFS:?}/etc/machine-id" ]; then

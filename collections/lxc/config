@@ -1,2 +1,5 @@
 # disable network interface renaming for containers
 OFEAT_IFNAMES=0
+
+# /etc/resolv.conf is usually created when importing the container
+OFEAT_RESOLV_CONF=0
