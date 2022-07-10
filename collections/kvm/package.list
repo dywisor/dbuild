@@ -3,3 +3,4 @@ initramfs-tools
 zstd
 busybox
 grub-efi-amd64
+e2fsprogs
