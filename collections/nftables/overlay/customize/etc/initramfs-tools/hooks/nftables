@@ -1,0 +1,54 @@
+#!/bin/sh
+
+PREREQ=""
+
+prereqs() {
+    echo "$PREREQ"
+}
+
+case "${1-}" in
+    prereqs)
+        prereqs
+        exit 0
+    ;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+# Begin real processing below this line
+
+verbose() {
+    if [ "${verbose-}" = "y" ]; then
+        printf 'I: nftables: %s\n' "${@}"
+    fi
+}
+
+
+if [ ! -x /usr/sbin/nft ]; then
+    printf 'W: nftables: %s\n' 'Not enabling early nftables, nft binary missing.'
+
+elif [ -s /etc/nftables.conf.initramfs ]; then
+    verbose 'Enabling early nftables'
+    copy_exec /usr/sbin/nft /sbin
+
+    force_load nf_tables
+
+    force_load nft_log
+    force_load nf_log_ipv4
+    force_load nf_log_ipv6
+
+    force_load nft_reject_inet
+    force_load nf_reject_ipv4
+    force_load nf_reject_ipv6
+    force_load nft_reject
+
+    force_load nft_limit
+
+    force_load nf_conntrack
+    force_load nft_ct
+
+    mkdir -p -- "${DESTDIR:?}/etc" || exit
+    cp -L -- /etc/nftables.conf.initramfs "${DESTDIR:?}/etc/nftables.conf" || exit
+
+else
+    printf 'W: nftables: %s\n' 'Not enabling early nftables, rules file empty or missing.'
+fi

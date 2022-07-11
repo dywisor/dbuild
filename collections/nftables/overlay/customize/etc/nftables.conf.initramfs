@@ -1,0 +1,183 @@
+#!/usr/sbin/nft -f
+#
+# Basic ruleset that installs the following filter chains:
+#
+#   chain input_ssh       -- SSH rules for the input chain
+#   chain input           -- allow ICMP, DHCP client, SSH; drop anything else
+#   chain output          -- allow ICMP, DHCP client, SSH, DNS/NTP, HTTP(S), acng; reject anything else
+#   chain forward         -- drop everything (except for stateful)
+#   chain global_stateful -- common helper for ct state
+#   chain global_icmp     -- common helper for ICMP(v6) ping/timex/unreach
+#
+# NOTE: Not relying on getent services lookup here
+#       and using hardcoded port numbers instead.
+
+flush ruleset
+
+#> Defines
+
+
+#> Ruleset
+table inet filter {
+
+    # You may wish to override the input_ssh section
+    # in order to restrict (initial) SSH to your own hosts.
+    chain input_ssh {
+        #ip saddr 198.51.100.1 tcp dport 22 accept;
+        #ip saddr @hosts_admin tcp dport 22 accept;
+        tcp dport 22 accept;
+    }
+
+
+    chain input {
+        type filter hook input priority 0;
+        policy drop;
+
+        # skip on loopback
+        iif lo accept;
+
+        jump global_stateful;
+        jump global_icmp;
+
+        #> Essential communication
+
+        ##> IPv6
+        ip6 nexthdr icmpv6 icmpv6 type nd-neighbor-advert accept;
+        ip6 nexthdr icmpv6 icmpv6 type nd-router-advert accept;
+
+        ##> DHCPv4 client
+        ip protocol udp udp sport 67 udp dport 68 accept;
+
+        ##> DHCPv6 client
+        ip6 nexthdr udp udp sport 547 udp dport 546 accept;
+
+        #> Services
+
+        ##> SSH
+        jump input_ssh;
+
+        #> CLEANUP
+        ##> drop broadcast/multicast silently
+        meta pkttype broadcast drop;
+        meta pkttype multicast drop;
+
+        ##> log new connections
+        ct state new log level warn prefix "drop-incoming: ";
+
+        ##> drop
+        #ip  protocol tcp reject with tcp reset;
+        #ip6 nexthdr  tcp reject with tcp reset;
+        drop;
+    }
+
+
+    chain output {
+        type filter hook output priority 0;
+        policy drop;
+
+        # skip on loopback
+        oif lo accept;
+
+        jump global_stateful;
+        jump global_icmp;
+
+        #> Essential communication
+
+        ##> IPv6
+        ip6 nexthdr icmpv6 icmpv6 type nd-neighbor-solicit accept;
+        ip6 nexthdr icmpv6 icmpv6 type nd-router-solicit accept;
+
+        ##> DHCPv4 client
+        ip protocol udp udp sport 68 udp dport 67 accept;
+
+        ##> DHCPv6 client
+        ip6 nexthdr udp udp sport 546 udp dport 547 accept;
+
+        #> Services
+
+        ##> SSH
+        tcp dport 22 accept;
+
+        ##> DNS
+        tcp dport 53 accept;
+        udp dport 53 accept;
+
+        ##> NTP
+        udp dport 123 accept;
+
+        ##> HTTP(S)
+        tcp dport { 80, 443 } accept;
+
+        #> Services - to private networks only
+
+        ##> apt-cacher-ng
+        ip daddr @net_rfc1918 tcp dport 3142 accept;
+        ip6 daddr @net_ula tcp dport 3142 accept;
+
+        #> CLEANUP
+        ##> drop broadcast/multicast silently
+        meta pkttype broadcast drop;
+        meta pkttype multicast drop;
+
+        ##> log new connections
+        ct state new log level warn prefix "reject-outgoing: ";
+
+        ##> reject
+        ip  protocol tcp reject with tcp reset;
+        ip6 nexthdr  tcp reject with tcp reset;
+        reject;
+    }
+
+
+    chain forward {
+        type filter hook forward priority 0;
+        policy drop;
+
+        jump global_stateful;
+
+        #> log before drop
+        ct state new log level warn prefix "drop-forward:  ";
+        drop;
+    }
+
+
+    chain global_stateful {
+        # allow connections based on ct state
+        ct state established,related accept;
+        ct state invalid drop;
+    }
+
+
+    chain global_icmp {
+        # ICMP essentials (IPv4)
+        ip protocol icmp icmp type echo-request limit rate 5/second accept;
+        ip protocol icmp icmp type destination-unreachable accept;
+        ip protocol icmp icmp type time-exceeded accept;
+
+        # ICMP essentials (IPv6)
+        ip6 nexthdr icmpv6 icmpv6 type echo-request limit rate 5/second accept;
+        ip6 nexthdr icmpv6 icmpv6 type destination-unreachable accept;
+        ip6 nexthdr icmpv6 icmpv6 type time-exceeded accept;
+    }
+
+
+    set net_rfc1918 {
+        type ipv4_addr;
+        flags interval;
+
+        elements = {
+            10.0.0.0/8,
+            172.16.0.0/12,
+            192.168.0.0/16,
+        };
+    }
+
+    set net_ula {
+        type ipv6_addr;
+        flags interval;
+
+        elements = {
+            fc00::/7,
+        };
+    }
+}
