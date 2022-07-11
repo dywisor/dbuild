@@ -1,0 +1,107 @@
+#!/bin/sh
+# Usage: firstboot-update-hostname <new_hostname>
+#
+set -fu
+
+NEW_HOSTNAME=""
+
+while getopts 'h' opt; do
+    case "${opt}" in
+        'h')
+            printf 'Usage: %s <new_hostname>\n' "${0}"
+            exit 0
+        ;;
+        *)
+            printf 'Usage error.\n' 1>&2
+            exit 64
+        ;;
+    esac
+done
+
+[ ${OPTIND} -lt 2 ] || shift $(( OPTIND - 1 ))
+
+NEW_HOSTNAME="${1:?}"
+
+
+# write /etc/hostname
+(
+    umask 0077 || exit
+    printf '%s\n' "${NEW_HOSTNAME}" > /etc/hostname.new || exit
+    chown -- 0:0 /etc/hostname.new || exit
+    chmod -- 0644 /etc/hostname.new || exit
+) || exit
+
+mv -f -- /etc/hostname.new /etc/hostname || exit
+
+
+# apply hostname
+printf 'Setting new hostname: %s\n' "${NEW_HOSTNAME}"
+if [ -d /run/systemd/system ]; then
+    hostnamectl set-hostname "${NEW_HOSTNAME}" || exit
+
+elif [ -x /etc/init.d/hostname.sh ]; then
+    /etc/init.d/hostname.sh || exit
+
+else
+    hostname -F /etc/hostname
+fi
+
+# regenerate SSH host keys
+## get host key file list
+## preferable from "HostKey <filepath>" lines in /etc/ssh/sshd_config
+## (exactly in that notation, not using IGNORECASE=1 as it is a GNU awk feature)
+set --
+if \
+    SSH_HOST_KEY_FILES="$(
+        < /etc/ssh/sshd_config awk '($1 == "HostKey") { print $2; }'
+    )" && \
+    [ -n "${SSH_HOST_KEY_FILES}" ]
+then
+    :
+
+else
+    printf 'WARN: using built-in SSH host key list\n' 1>&2
+    SSH_HOST_KEY_FILES="/etc/ssh/ssh_host_rsa_key /etc/ssh/ssh_host_ed25519_key"
+fi
+
+## generate host key files, replace old ones
+mkdir -p -- /etc/ssh/factory_host_keys || exit
+
+for host_key_file in ${SSH_HOST_KEY_FILES}; do
+    host_key_fname="${host_key_file##*/}"
+
+    host_key_type="${host_key_fname#ssh_host_}"
+    host_key_type="${host_key_type%_key}"
+
+    rm -f -- "${host_key_file}.new" || exit
+
+    case  "${host_key_type}" in
+        'ed25519')
+            ssh-keygen -N "" -t "${host_key_type}" -f "${host_key_file}.new" || exit
+        ;;
+
+        'rsa')
+            ssh-keygen -N "" -t "${host_key_type}" -b 4096 -f "${host_key_file}.new" || exit
+        ;;
+
+        *)
+            printf 'WARN: unsupported ssh host key type %s, cannot replace %s\n' \
+                "${host_key_type}" "${host_key_file}" 1>&2
+        ;;
+    esac
+
+    printf 'Replacing SSH host key: %s\n' "${host_key_file}"
+
+    for fpath in "${host_key_file}" "${host_key_file}.pub"; do
+        if [ -h "${fpath}" ]; then
+            rm -- "${fpath}" || exit
+
+        elif [ -e "${fpath}" ]; then
+            rm -f -- "/etc/ssh/factory_host_keys/${fpath##*/}" || exit
+            ln -- "${fpath}" "/etc/ssh/factory_host_keys/${fpath##*/}" || exit
+        fi
+    done
+
+    mv -f -- "${host_key_file}.new" "${host_key_file}" || exit
+    mv -f -- "${host_key_file}.new.pub" "${host_key_file}.pub" || exit
+done

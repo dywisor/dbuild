@@ -1,0 +1,348 @@
+#!/bin/sh
+# firstboot-kvm
+#  Reset disk/partition/fs UUIDs and resize rootfs to max size.
+#
+
+PREREQ=""
+
+prereqs() {
+    echo "$PREREQ"
+}
+
+case "${1-}" in
+    prereqs)
+        prereqs
+        exit 0
+    ;;
+esac
+
+. /scripts/functions
+# Begin real processing below this line
+
+gen_uuid() {
+    read -r uuid < /proc/sys/kernel/random/uuid || { uuid=''; return 1; }
+}
+
+gen_uuid_vfat() {
+    # 3aad3da3-3971-47a6-b4e7-7910290fcfc7 -> { uuid=3971-47A6, uuid_vfat=397147A6 }
+    uuid_vfat=
+
+    local a
+    local b
+
+    gen_uuid || return
+
+    # uuid must be uppercase format for mount and /etc/fstab
+    # Otherwise, mounting fails:
+    #   mount: /boot/efi: can't find UUID=3971-47a6.
+    #   While mount UUID=3971-47A6 works ..
+    #
+    # NOTE: Debian's busybox is built without CONFIG_FEATURE_TR_CLASSES=y
+    #  tr '[:lower:]' '[:upper:]' has no effect nor does it throw a warning
+    a="$( printf '%s\n' "${uuid}" | cut -d - -f 2,3 | tr 'a-f' 'A-F' )" && [ -n "${a}" ] || return
+
+    uuid="${a}"
+
+    a="${uuid%%-*}"
+    b="${uuid#*-}"
+
+    uuid_vfat="${a}${b}"
+}
+
+firstboot_rewrite_uuids() {
+    local rc
+
+    local new_fstab_file
+
+    local fstab_lino
+    local mnt_fsname
+    local mnt_dir
+    local mnt_type
+    local mnt_opts
+    local mnt_freq
+    local mnt_passno
+
+    local rootfs_uuid
+    local rootfs_type
+    local rootfs_part_dev
+    local rootfs_part_no
+    local rootfs_drive_dev
+
+    local part_dev
+    local part_no
+    local drive_dev
+
+    local iter
+    local did_change_drive_dev_id
+    local uuid
+    local uuid_vfat
+    local uuid_written
+    local args
+
+    # build up a list of disks whose ID has already been changed
+    set --
+
+    rc=0   # FIXME set rc below..
+
+    rootfs_uuid=
+    rootfs_type=
+    rootfs_part_dev=
+    rootfs_part_no=
+    rootfs_drive_dev=
+
+    new_fstab_file='/run/initramfs/fstab.host'
+    mkdir -p -- "${new_fstab_file%/*}" || :
+    cp -vL -- /etc/fstab.host "${new_fstab_file}" || return
+
+    exec 5</etc/fstab.host.prepared || return 8
+
+    # fstab has been prepared:
+    #   - additional field (first field): line number in original fstab file
+    #   - no bogus lines (invalid field count)
+    #   - no comment lines
+    #   - only filesystems listed whose UUID should be adjusted
+    while <&5 read -r \
+        fstab_lino mnt_fsname mnt_dir mnt_type mnt_opts mnt_freq mnt_passno
+    do
+        part_dev=
+        part_no=
+        drive_dev=
+
+        iter=
+        did_change_drive_dev_id=
+        uuid=
+        uuid_written=
+        args=
+
+        case "${mnt_fsname}" in
+            '')
+                continue
+            ;;
+
+            /dev/*)
+                part_dev="${mnt_fsname}"
+            ;;
+
+            *)
+                part_dev="$( /sbin/findfs "${mnt_fsname}" )" && [ -n "${part_dev}" ] || part_dev=
+            ;;
+        esac
+
+        if [ -n "${part_dev}" ]; then
+            if [ -b "${part_dev}" ]; then
+                case "${part_dev}" in
+                    /dev/[hsv]da*[0-9])
+                        drive_dev="${part_dev%%[0-9]*}"
+                        part_no="${part_dev#${drive_dev}}"
+                    ;;
+
+                    /dev/[hsv]da*)
+                        # no partition table -> IGNORED
+                        true
+                    ;;
+
+                    /dev/nvme*p[0-9]*)
+                        drive_dev="${part_dev%%p[0-9]*}"
+                        part_no="${part_dev#${drive_dev}p}"
+                    ;;
+
+                    /dev/nvme*)
+                        # no partition table -> IGNORED
+                        true
+                    ;;
+                esac
+
+                if \
+                    [ -n "${drive_dev}" ] && [ -b "${drive_dev}" ] && \
+                    { test "${part_no}" -gt 0 2>/dev/null; }
+                then
+                    # change drive identifier (skip if already changed)
+                    did_change_drive_dev_id=
+
+                    for iter in "${@}"; do
+                        if [ "${iter}" = "${drive_dev}" ]; then
+                            did_change_drive_dev_id=YES
+                            break
+                        fi
+                    done
+
+                    if [ -z "${did_change_drive_dev_id}" ]; then
+                        if gen_uuid && /sbin/sfdisk --disk-id "${drive_dev}" "${uuid:?}"; then
+                            log_success_msg "Changed disk identifier of ${drive_dev}"
+                            sleep 2  # timing issues when rereading partition table?
+
+                        else
+                            log_failure_msg "Could not change disk identifier of ${drive_dev}"
+                            sleep 2
+                        fi
+
+                        # remember "drive has been processed" regardless of success
+                        set -- "${@}" "${drive_dev}"
+                    fi
+
+                    # change partition identifier
+                    if gen_uuid && /sbin/sfdisk --part-uuid "${drive_dev}" "${part_no}" "${uuid:?}"; then
+                        log_success_msg "Changed partition identifier of ${part_dev}"
+                        sleep 2  # timing issues when rereading partition table?
+
+                    else
+                        log_failure_msg "Could not change partition identifier of ${part_dev}"
+                        sleep 2
+                    fi
+
+                    if [ "${mnt_dir}" = '/' ]; then
+                        rootfs_uuid=""
+                        rootfs_type="${mnt_type}"
+                        rootfs_part_dev="${part_dev}"
+                        rootfs_part_no="${part_no}"
+                        rootfs_drive_dev="${drive_dev}"
+                    fi
+
+                else
+                    log_warning_msg "filesystem ${part_dev} - not a partition or could not detect drive"
+                fi
+
+                # filesystem identifier
+                uuid_written=
+                case "${mnt_type}" in
+                    'ext4')
+                        if gen_uuid && { echo y | /sbin/tune2fs -f -U "${uuid:?}" "${part_dev}"; }; then
+                            uuid_written="${uuid:?}"  # could re-read from part_dev
+                            log_success_msg "Changed filesystem UUID of ${part_dev} to ${uuid} (${mnt_fsname})"
+                        else
+                            log_failure_msg "Could not change filesystem UUID of ${part_dev} (${mnt_fsname})"
+                            sleep 2
+                        fi
+                    ;;
+
+                    'vfat')
+                        if gen_uuid_vfat && /sbin/fatlabel -i "${part_dev}" "${uuid_vfat:?}"; then
+                            uuid_written="${uuid:?}"  # could re-read from part_dev
+                            log_success_msg "Changed filesystem UUID of ${part_dev} to ${uuid} (${mnt_fsname})"
+
+                        else
+                            log_failure_msg "Could not change filesystem UUID of ${part_dev} (${mnt_fsname})"
+                            sleep 2
+                        fi
+                    ;;
+
+                    'swap')
+                        args=
+                        case "${mnt_fsname}" in
+                            LABEL=*)
+                                args="-L ${mnt_fsname#LABEL=}"
+                            ;;
+                        esac
+
+                        if gen_uuid && /sbin/mkswap.full ${args} -U "${uuid:?}" "${part_dev}"; then
+                            uuid_written="${uuid:?}"  # could re-read from part_dev
+                            log_success_msg "Changed filesystem UUID of ${part_dev} to ${uuid} (${mnt_fsname})"
+                        else
+                            log_failure_msg "Could not change filesystem UUID of ${part_dev} (${mnt_fsname})"
+                            sleep 2
+                        fi
+                    ;;
+
+                    *)
+                        log_warning_msg "Cannot change filesystem UUID of ${part_dev}, unsupported fstype ${mnt_type}"
+                    ;;
+                esac
+
+                if [ -n "${uuid_written}" ]; then
+                    if [ "${mnt_dir}" = '/' ]; then
+                        rootfs_uuid="${uuid_written}"
+                    fi
+
+                    # update fstab in /run
+                    if \
+                        {
+                            awk \
+                                -v fs_idx="${fstab_lino}" \
+                                -v fs_old="${mnt_fsname}" \
+                                -v fs_new="UUID=${uuid_written}" \
+                                'BEGIN{ exit_code=1; } (NR == fs_idx) && ($1 == fs_old) { $1 = fs_new; exit_code=0; } { print; } END{ exit exit_code; }' \
+                                < "${new_fstab_file}" > "${new_fstab_file}.next"
+                        } && mv -f -- "${new_fstab_file}.next" "${new_fstab_file}"
+                    then
+                        log_success_msg "Updated fstab file: ${mnt_fsname} -> UUID=${uuid_written}"
+
+                    else
+                        log_failure_msg "Could not update fstab file for ${mnt_fsname}"
+                        sleep 2
+                    fi
+                fi
+
+            else
+                log_warning_msg "filesystem ${part_dev} is missing / not a block device (${mnt_fsname})"
+            fi
+
+        else
+            log_warning_msg "Could not locate filesystem ${mnt_fsname}, skipping"
+        fi
+    done
+
+    exec 5<&- || :
+
+    if [ -n "${rootfs_uuid}" ]; then
+        # write new rootfs UUID
+        # /conf/param.conf: override boot param for root=
+        if printf 'export ROOT=UUID=%s\n' "${rootfs_uuid}" >> /conf/param.conf; then
+            log_success_msg "Wrote new rootfs UUID to param.conf"
+        else
+            log_failure_msg "Could not write new rootfs UUID to param.conf"
+            sleep 2
+        fi
+    fi
+
+    if [ -n "${rootfs_part_dev}" ]; then
+        # resize rootfs
+        # lazy mode: always resize rootfs (not checking old/new partition end)
+
+        sleep 2  # timing issues when rereading partition table during resize?
+
+        if echo ',+' | /sbin/sfdisk -N "${rootfs_part_no}" "${rootfs_drive_dev}"; then
+            log_success_msg "Resized rootfs partition (${rootfs_part_dev})"
+            sleep 2  # timing issues when rereading partition table during resize?
+
+            blkid -p "${rootfs_part_dev}" || :
+
+            case "${rootfs_type}" in
+                'ext4')
+                    if /sbin/resize2fs "${rootfs_part_dev}" < /dev/null; then
+                        log_success_msg "Resized rootfs (${rootfs_part_dev})"
+                        sleep 2  # timing issues when rereading partition table during resize?
+                    else
+                        log_failure_msg "Could not resize rootfs (${rootfs_part_dev})"
+                        sleep 2
+                    fi
+                ;;
+
+                *)
+                    log_warning_msg "Cannot resize rootfs ${rootfs_part_dev} - unknown/unsupported fstype."
+                ;;
+            esac
+
+        else
+            log_failure_msg "Could not resize rootfs partition (${rootfs_part_dev})"
+            sleep 2
+        fi
+    fi
+
+    return ${rc}
+}
+
+
+if [ -e /can_firstboot ] && [ "${firstboot:-0}" = '1' ]; then
+    mkdir -p -- /run/initramfs || :
+
+    # NOTE: don't remove the sleep here,
+    # it also allows the kernel to settle block device enumeration
+    log_warning_msg "Rewriting UUIDs and resizing rootfs in 10 seconds ..."
+    sleep 10
+
+    {
+        firstboot_rewrite_uuids
+    } 2>&1 | tee /run/initramfs/firstboot-kvm.log
+
+    sleep 10
+fi

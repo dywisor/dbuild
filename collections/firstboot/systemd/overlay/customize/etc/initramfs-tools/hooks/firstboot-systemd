@@ -1,0 +1,29 @@
+#!/bin/sh
+
+PREREQ="firstboot"
+
+prereqs() {
+    echo "$PREREQ"
+}
+
+case "${1-}" in
+    prereqs)
+        prereqs
+        exit 0
+    ;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+# Begin real processing below this line
+
+verbose() {
+    #if [ "${verbose-}" = "y" ]; then
+    printf 'I: firstboot: %s\n' "${@}"
+    #fi
+}
+
+if [ -n "${INITRAMFS_FIRSTBOOT-}" ]; then
+    verbose 'Enabling firstboot mode support, systemd additions'
+    copy_exec /usr/bin/dbus-uuidgen /sbin
+
+fi

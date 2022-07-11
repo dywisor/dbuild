@@ -1,0 +1,28 @@
+[Unit]
+Description = dbuild firstboot - unattended tasks
+
+ConditionPathExists = /firstboot_mode
+
+DefaultDependencies = no
+
+After   = systemd-udevd.service systemd-sysusers.service systemd-sysctl.service
+After   = local-fs.target
+Before  = network.target multi-user.target shutdown.target
+Conflicts = shutdown.target
+
+
+[Service]
+Type = oneshot
+ExecStart = /usr/local/sbin/firstboot-unattended
+ExecStart = /bin/rm /usr/local/sbin/firstboot-unattended
+
+TimeoutStartSec = 10min
+
+WorkingDirectory = /
+
+StandardInput = null
+StandardOutput = journal+console
+StandardError  = journal+console
+
+[Install]
+WantedBy = multi-user.target

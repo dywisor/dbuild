@@ -1,0 +1,55 @@
+#!/bin/sh
+
+PREREQ="firstboot"
+
+prereqs() {
+    echo "$PREREQ"
+}
+
+case "${1-}" in
+    prereqs)
+        prereqs
+        exit 0
+    ;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+# Begin real processing below this line
+
+verbose() {
+    #if [ "${verbose-}" = "y" ]; then
+    printf 'I: firstboot: %s\n' "${@}"
+    #fi
+}
+
+prepare_host_fstab() {
+    awk \
+"
+( \
+    (NF >= 4) && (NF <= 6) && \
+    (\$1 ~ /^((PARTUUID|UUID|LABEL)=|\\/dev\\/)/) && \
+    (\$3 ~ /^(ext4|vfat|swap)\$/) \
+) {
+    # strip quotes in mnt_fsname
+    gsub(\"[\\\"']\", \"\", \$1);
+
+    printf(\"%d \", NR);
+    print;
+}
+"
+}
+
+if [ -n "${INITRAMFS_FIRSTBOOT-}" ]; then
+    verbose 'Enabling firstboot mode support, KVM additions'
+
+    copy_exec /sbin/findfs      /sbin
+    copy_exec /sbin/sfdisk      /sbin
+    copy_exec /sbin/tune2fs     /sbin
+    copy_exec /sbin/resize2fs   /sbin
+    copy_exec /sbin/fatlabel    /sbin
+    copy_exec /sbin/mkswap      /sbin/mkswap.full
+
+    mkdir -p -- "${DESTDIR}/etc" || exit
+    cp -L -- /etc/fstab "${DESTDIR}/etc/fstab.host" || exit
+    < "${DESTDIR}/etc/fstab.host" prepare_host_fstab > "${DESTDIR}/etc/fstab.host.prepared" || exit
+fi

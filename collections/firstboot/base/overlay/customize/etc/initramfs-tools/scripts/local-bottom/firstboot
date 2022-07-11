@@ -1,0 +1,30 @@
+#!/bin/sh
+# firstboot
+
+PREREQ=""
+
+prereqs() {
+    echo "$PREREQ"
+}
+
+case "${1-}" in
+    prereqs)
+        prereqs
+        exit 0
+    ;;
+esac
+
+. /scripts/functions
+# Begin real processing below this line
+
+
+if [ -e /can_firstboot ] && [ "${firstboot:-0}" = '1' ]; then
+    mount -o remount,rw "${rootmnt:?}" || :
+    # NOTE: keeping rootmnt in read-write mode!
+
+    if touch -- "${rootmnt:?}/firstboot_mode"; then
+        log_success_msg "enabled firstboot mode in rootfs"
+    else
+        log_failure_msg "could not enable firstboot mode in rootfs"
+    fi
+fi

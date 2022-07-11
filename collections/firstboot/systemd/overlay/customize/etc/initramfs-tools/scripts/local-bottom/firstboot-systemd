@@ -1,0 +1,41 @@
+#!/bin/sh
+# firstboot-systemd
+
+PREREQ="firstboot"
+
+prereqs() {
+    echo "$PREREQ"
+}
+
+case "${1-}" in
+    prereqs)
+        prereqs
+        exit 0
+    ;;
+esac
+
+. /scripts/functions
+# Begin real processing below this line
+
+
+if [ -e /can_firstboot ] && [ "${firstboot:-0}" = '1' ]; then
+    mount -o remount,rw "${rootmnt:?}" || :
+    # NOTE: keeping rootmnt in read-write mode!
+
+    # /etc/machine-id
+    if /sbin/dbus-uuidgen > "${rootmnt:?}/etc/machine-id"; then
+        log_success_msg "New machine-id has been generated (firstboot mode)."
+    else
+        log_failure_msg "Failed to generate/write new machine-id (firstboot mode)."
+    fi
+
+    # dbuild-firstboot.service
+    if ln -f -s -- \
+        '/etc/systemd/system/dbuild-firstboot.service' \
+        "${rootmnt:?}/etc/systemd/system/multi-user.target.wants/dbuild-firstboot.service"
+    then
+        log_success_msg "Enabled firstboot init hook"
+    else
+        log_failure_msg "Could not enable firstboot init hook"
+    fi
+fi
