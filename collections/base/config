@@ -279,3 +279,9 @@ OCONF_RESOLV_CONF_NS='208.67.222.222 208.67.220.220'
 # List of search domains for /etc/resolv.conf
 # (if OFEAT_RESOLV_CONF is set to 1)
 OCONF_RESOLV_CONF_SEARCH=''
+
+# Whether to create an empty /etc/machine-id file
+#
+#   If unset, /etc/machine-id will be deleted.
+#
+OFEAT_ETC_MACHINE_ID=0

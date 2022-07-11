@@ -14,11 +14,6 @@ EOF
 autodie rm -- "${TARGET_ROOTFS:?}/etc/hostname"
 
 
-# remove /etc/machine-id (if present)
-if [ -e "${TARGET_ROOTFS:?}/etc/machine-id" ]; then
-    autodie rm -- "${TARGET_ROOTFS:?}/etc/machine-id"
-fi
-
 # remove SSH host keys
 autodie find "${TARGET_ROOTFS:?}/etc/ssh" \
     -mindepth 1 -maxdepth 1 \
