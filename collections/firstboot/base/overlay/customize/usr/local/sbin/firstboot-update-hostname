@@ -105,3 +105,10 @@ for host_key_file in ${SSH_HOST_KEY_FILES}; do
     mv -f -- "${host_key_file}.new" "${host_key_file}" || exit
     mv -f -- "${host_key_file}.new.pub" "${host_key_file}.pub" || exit
 done
+
+
+
+# update motd
+if rm -- /etc/firstboot-motd.d/20-hostname.motd 2>/dev/null; then
+    /usr/local/sbin/firstboot-update-motd || :
+fi

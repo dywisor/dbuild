@@ -27,4 +27,10 @@ if [ -e /can_firstboot ] && [ "${firstboot:-0}" = '1' ]; then
     else
         log_failure_msg "could not enable firstboot mode in rootfs"
     fi
+
+    # update /etc/motd in newroot
+    #  (assuming that there are still other firstboot tasks left..)
+    if rm -- "${rootmnt:?}/etc/firstboot-motd.d/10-initramfs.motd" 2>/dev/null; then
+        ( set +f; cat -- "${rootmnt:?}/etc/firstboot-motd.d/"*.motd; ) > "${rootmnt:?}/etc/motd" || :
+    fi
 fi

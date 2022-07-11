@@ -1,0 +1,3 @@
+
+- Boot in firstboot mode
+  (firstboot=1 kernel parameter + firstboot initramfs)

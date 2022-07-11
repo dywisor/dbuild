@@ -1,0 +1,4 @@
+
+- Reinstall/Update GRUB
+
+- Update initramfs to disable firstboot mode

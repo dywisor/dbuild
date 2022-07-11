@@ -65,3 +65,10 @@ fi
     printf 'Removing factory /etc/fstab\n'
     rm -- /etc/fstab.initial || :
 ) || :
+
+# update /etc/motd [NONFATAL]
+(
+    printf 'Updating /etc/motd\n'
+    rm -- /etc/firstboot-motd.d/15-grub.motd || :
+    /usr/local/sbin/firstboot-update-motd || :
+) || :

@@ -1,0 +1,3 @@
+
+- Run firstboot-update-hostname
+  to set the hostname and regenerate SSH host keys

@@ -1,0 +1,68 @@
+#!/bin/sh
+# Generate /etc/motd from /etc/firstboot-motd.d
+# or replace it with /etc/motd.dist.
+set +f
+set -u
+
+while getopts 'h' opt; do
+    case "${opt}" in
+        'h')
+            printf 'Usage: %s\n' "${0}"
+            exit 0
+        ;;
+        *)
+            printf 'Usage error.\n' 1>&2
+            exit 64
+        ;;
+    esac
+done
+
+[ ${OPTIND} -lt 2 ] || shift $(( OPTIND - 1 ))
+
+if [ $# -gt 0 ]; then
+    printf 'Usage error.\n' 1>&2
+    exit 64
+fi
+
+FIRSTBOOT_MOTD_SRC="/etc/firstboot-motd.d"
+
+if [ ! -d "${FIRSTBOOT_MOTD_SRC}" ]; then
+    printf 'No firstboot source files for motd, aborting.\n' 1>&2
+    exit 2
+fi
+
+
+replace_motd() {
+    : "${1:?}"
+
+    # /etc/motd could be a symlink, so try to remove it first
+    rm -f -- /etc/motd || :
+
+    # mv, overwrite!
+    mv -f -- "${1}" /etc/motd || return
+}
+
+
+set -- "${FIRSTBOOT_MOTD_SRC}"/*.motd
+
+if [ $# -gt 2 ]; then
+    # not just header / footer present (or nothing at all)
+
+    cat -- "${@}" > /etc/motd.new || exit
+    replace_motd /etc/motd.new || exit
+
+else
+    if [ -e /etc/motd.dist ]; then
+        replace_motd /etc/motd.dist || exit
+
+    else
+        my_hostname="$(hostname -s)"
+        : "${my_hostname:=UNKNOWN}"
+
+        printf 'Welcome to %s\n\n' "${my_hostname}" > /etc/motd.new || exit
+        replace_motd /etc/motd.new
+    fi
+
+    # clean up motd files, not needed anymore
+    rm -rf -- "${FIRSTBOOT_MOTD_SRC}" || :
+fi
