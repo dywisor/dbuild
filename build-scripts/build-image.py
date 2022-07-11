@@ -4,12 +4,27 @@
 import argparse
 import collections
 import enum
+import functools
 import os
 import pathlib
 import shlex
 import subprocess
 import sys
 import tempfile
+
+@functools.lru_cache(maxsize=128)
+def get_hook_name_prio(hook_name):
+    prio_text, prio_sep, remainder = hook_name.partition('-')
+
+    try:
+        prio = int(prio_text, 10)
+
+    except ValueError:
+        return sys.maxsize
+
+    else:
+        return prio
+# --- end of get_hook_name_prio (...) ---
 
 
 @enum.unique
@@ -399,8 +414,11 @@ def main_build_hooks(cfg):
             #> add hooks
             outfh.write('\n### hooks\n')
 
+            # Sort by hook index, preferring the more important collection
+            # in case of a tie (i.e. lower prio).
+            # Fall back to hook name comparison as a last resort.
             for bcol, hook_name, hook_file in sorted(
-                hook_list, key=lambda xv: (xv[1], xv[0].prio)
+                hook_list, key=lambda xv: (get_hook_name_prio(xv[1]), xv[0].prio, xv[1])
             ):
                 bcol_hook_env = dict(bcol.hook_env)
 
