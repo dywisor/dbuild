@@ -42,4 +42,9 @@ if [ "${OFEAT_RSYSLOG:-0}" -eq 1 ]; then
     printf '%s\n' rsyslog logrotate
 fi
 
+# haveged
+if [ "${OFEAT_HAVEGED:-0}" -eq 1 ]; then
+    printf '%s\n' haveged
+fi
+
 exit 0

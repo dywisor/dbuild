@@ -262,6 +262,13 @@ OFEAT_CRON=1
 #
 OFEAT_RSYSLOG=0
 
+# Whether to install haveged for extra entropy
+#
+#   This is mostly useful for virtual machines
+#   when gpg, ... hangs due to low entropy.
+#
+OFEAT_HAVEGED=0
+
 # Whether to generate /etc/resolv.conf
 #
 #   Note that disabling this will remove /etc/resolv.conf

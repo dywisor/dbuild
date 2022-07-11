@@ -24,3 +24,6 @@ autodie target_set_svc "${OFEAT_CRON:-0}" cron
 
 #> rsyslog
 autodie target_set_svc "${OFEAT_RSYSLOG:-0}" rsyslog
+
+#> haveged
+autodie target_set_svc "${OFEAT_HAVEGED:-0}" haveged
