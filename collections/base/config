@@ -296,3 +296,23 @@ OCONF_RESOLV_CONF_NS='208.67.222.222 208.67.220.220'
 # List of search domains for /etc/resolv.conf
 # (if OFEAT_RESOLV_CONF is set to 1)
 OCONF_RESOLV_CONF_SEARCH=''
+
+# Automatically configure network interfaces on boot? (DHCP/SLAAC)
+#
+#  If OFEAT_IFNAMES is set to 1, then this will enable
+#  IPv4 DHCP / IPv6 autoconf on *all* interfaces of type ether.
+#
+#  If OFEAT_IFNAMES is set to 0, then only a single interface
+#  specified in OCONF_NETCONFIG_DHCP_IFACE will be configured.
+#
+#  NOTE: This feature is not implemented in the base collection.
+#        Include the init-specific collection to enable it, e.g. systemd.
+#
+#  NOTE: This feature will implicitly install and enable a network manager
+#        such as ifupdown2 or systemd-networkd.
+#
+#  NOTE: auto configuration may override other DNS or NTP configuration
+#        (OFEAT_RESOLV_CONF, ...)
+#
+OFEAT_NETCONFIG_DHCP=0
+OCONF_NETCONFIG_DHCP_IFACE='eth0'

@@ -1,0 +1,12 @@
+[Match]
+Name                    = @@IFNAME@@
+
+[Network]
+Description             = @@IFNAME@@ default IPv4 DHCP / IPv6 autoconf
+DHCP                    = ipv4
+LinkLocalAddressing     = ipv6
+IPv6AcceptRA            = yes
+IPv6PrivacyExtensions   = yes
+
+[DHCPv4]
+SendHostname            = no
