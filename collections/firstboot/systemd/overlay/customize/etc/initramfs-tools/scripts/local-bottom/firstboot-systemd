@@ -30,6 +30,8 @@ if [ -e /can_firstboot ] && [ "${firstboot:-0}" = '1' ]; then
     fi
 
     # dbuild-firstboot.service
+    mkdir -p -- "${rootmnt:?}/etc/systemd/system/multi-user.target.wants" || :
+
     if ln -f -s -- \
         '/lib/systemd/system/dbuild-firstboot.service' \
         "${rootmnt:?}/etc/systemd/system/multi-user.target.wants/dbuild-firstboot.service"
