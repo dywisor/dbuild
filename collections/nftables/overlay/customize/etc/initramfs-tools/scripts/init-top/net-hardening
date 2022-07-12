@@ -1,0 +1,40 @@
+#!/bin/sh
+# net-hardening
+
+PREREQ=""
+
+prereqs() {
+    echo "$PREREQ"
+}
+
+case "${1-}" in
+    prereqs)
+        prereqs
+        exit 0
+    ;;
+esac
+
+. /scripts/functions
+# Begin real processing below this line
+
+
+sysctl_net_hardening_write_kmsg_status() {
+    [ -c /dev/kmsg ] || return 0
+    printf 'early-net-hardening: %s\n' "${1:-unknown}" > /dev/kmsg
+}
+
+
+if [ -s /etc/sysctl.d/20-hardening_net.conf ]; then
+    if sysctl -q -e -p /etc/sysctl.d/20-hardening_net.conf; then
+        log_success_msg "Early network stack hardening has been applied."
+        sysctl_net_hardening_write_kmsg_status success || :
+
+    else
+        log_failure_msg "Could not apply early network stack hardening."
+        sysctl_net_hardening_write_kmsg_status failed || :
+    fi
+
+else
+    log_warning_msg "Skipping early network stack hardening"
+    sysctl_net_hardening_write_kmsg_status skipped || :
+fi

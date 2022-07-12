@@ -1,0 +1,34 @@
+#!/bin/sh
+
+PREREQ=""
+
+prereqs() {
+    echo "$PREREQ"
+}
+
+case "${1-}" in
+    prereqs)
+        prereqs
+        exit 0
+    ;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+# Begin real processing below this line
+
+verbose() {
+    if [ "${verbose-}" = "y" ]; then
+        printf 'I: sysctl-net-hardening: %s\n' "${@}"
+    fi
+}
+
+
+if [ -s /etc/sysctl.d/20-hardening_net.conf ]; then
+    verbose 'Enabling early sysctl-net-hardening'
+
+    mkdir -p -- "${DESTDIR:?}/etc/sysctl.d" || :
+    cp -L -- /etc/sysctl.d/20-hardening_net.conf "${DESTDIR:?}/etc/sysctl.d/20-hardening_net.conf" || exit
+
+else
+    printf 'W: sysctl-net-hardening: %s\n' 'Not enabling early network stack hardening, sysctl file empty or missing.'
+fi
