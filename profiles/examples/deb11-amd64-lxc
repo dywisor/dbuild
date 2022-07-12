@@ -1,7 +1,7 @@
 # build environment
 DBUILD_TARGET_CODENAME='bullseye'
 DBUILD_TMPDIR_ROOT='/tmp'
-DBUILD_TARGET_COLLECTIONS='base systemd default lxc'
+DBUILD_TARGET_COLLECTIONS='base systemd default lxc/base'
 #DBUILD_APT_PROXY='http://acng:3142/'
 
 # password is usually reset during container deployment
