@@ -1,3 +1,4 @@
+qemu-guest-agent
 linux-image-amd64
 initramfs-tools
 zstd
