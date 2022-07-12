@@ -31,7 +31,7 @@ if [ -e /can_firstboot ] && [ "${firstboot:-0}" = '1' ]; then
 
     # dbuild-firstboot.service
     if ln -f -s -- \
-        '/etc/systemd/system/dbuild-firstboot.service' \
+        '/lib/systemd/system/dbuild-firstboot.service' \
         "${rootmnt:?}/etc/systemd/system/multi-user.target.wants/dbuild-firstboot.service"
     then
         log_success_msg "Enabled firstboot init hook"
