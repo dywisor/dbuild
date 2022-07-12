@@ -227,16 +227,6 @@ OCONF_KBD_LAYOUT=''
 #
 OCONF_TIMEZONE='Europe/Berlin'
 
-# Predictable Network Interface Names
-#
-#   Set to 1 to enable, 0 to disable renaming of network interfaces.
-#
-#   See also:
-#     https://wiki.debian.org/NetworkInterfaceNames
-#     https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/
-#
-OFEAT_IFNAMES=1
-
 # Downsize the target rootfs by excluding non-essential files
 #
 OFEAT_ROOTFS_MINIMAL=0
@@ -269,6 +259,26 @@ OFEAT_RSYSLOG=0
 #
 OFEAT_HAVEGED=0
 
+# Whether to create an empty /etc/machine-id file
+#
+#   If unset, /etc/machine-id will be deleted.
+#
+OFEAT_ETC_MACHINE_ID=0
+
+
+# Network Configuration
+# ---------------------
+
+# Predictable Network Interface Names
+#
+#   Set to 1 to enable, 0 to disable renaming of network interfaces.
+#
+#   See also:
+#     https://wiki.debian.org/NetworkInterfaceNames
+#     https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/
+#
+OFEAT_IFNAMES=1
+
 # Whether to generate /etc/resolv.conf
 #
 #   Note that disabling this will remove /etc/resolv.conf
@@ -286,9 +296,3 @@ OCONF_RESOLV_CONF_NS='208.67.222.222 208.67.220.220'
 # List of search domains for /etc/resolv.conf
 # (if OFEAT_RESOLV_CONF is set to 1)
 OCONF_RESOLV_CONF_SEARCH=''
-
-# Whether to create an empty /etc/machine-id file
-#
-#   If unset, /etc/machine-id will be deleted.
-#
-OFEAT_ETC_MACHINE_ID=0
