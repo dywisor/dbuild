@@ -68,6 +68,7 @@ Defaults:${OCONF_CTRL_USER} env_reset
 Defaults:${OCONF_CTRL_USER} !setenv
 Defaults:${OCONF_CTRL_USER} !env_keep
 Defaults:${OCONF_CTRL_USER} secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Defaults:${OCONF_CTRL_USER} !fqdn
 
 ${OCONF_CTRL_USER} ALL = (ALL) EXEC: NOMAIL: NOPASSWD: ALL
 EOF
