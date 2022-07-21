@@ -114,6 +114,10 @@ table inet filter {
         ip daddr @net_rfc1918 tcp dport 3142 accept;
         ip6 daddr @net_ula tcp dport 3142 accept;
 
+        ##> web proxy
+        ip daddr @net_rfc1918 tcp dport { 3128, 8080 } accept;
+        ip6 daddr @net_ula tcp dport { 3128, 8080 } accept;
+
         #> CLEANUP
         ##> drop broadcast/multicast silently
         meta pkttype broadcast drop;
