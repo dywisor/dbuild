@@ -1,10 +1,6 @@
 * ALL
   - mmdebstrap >= 0.8.0 (not in bullseye/stable): use --format=null
 
-* collections/base
-  - fixup man page permissions
-    ?? chown -R man:man /var/cache/man
-
 * collections/kvm
   - initramfs first-boot hook
     - cloud-init?
