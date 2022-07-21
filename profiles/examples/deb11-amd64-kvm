@@ -2,7 +2,8 @@
 DBUILD_TARGET_CODENAME='bullseye'
 DBUILD_TMPDIR_ROOT='/tmp'
 DBUILD_TARGET_COLLECTIONS='
-base systemd default kvm/base
+base systemd default
+vm/base vm/kvm vm/uefi
 firstboot/base firstboot/systemd firstboot/kvm
 '
 #DBUILD_APT_PROXY='http://acng:3142/'

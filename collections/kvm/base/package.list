@@ -1,9 +1,0 @@
-qemu-guest-agent
-linux-image-amd64
-initramfs-tools
-zstd
-busybox
-grub-efi-amd64
-efibootmgr
-e2fsprogs
-dosfstools
