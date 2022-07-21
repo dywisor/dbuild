@@ -99,6 +99,22 @@ def main(prog, argv):
         for name in want_bcol_names
     ))
 
+    bcol_dir_missing = [
+        (name, dirpath) for name, dirpath in cfg.profile_bcol.items()
+        if not dirpath.is_dir()
+    ]
+
+    if bcol_dir_missing:
+        sys.stderr.write('Missing dbuild collections:\n')
+        sys.stderr.write(
+            ''.join((
+                f'  - {name}\n    {dirpath}\n'
+                for name, dirpath in sorted(bcol_dir_missing, key=lambda xv: xv[0])
+            ))
+        )
+        return False
+    # --
+
     if arg_config.staging_dir:
         staging_env = StagingEnv(
             pathlib.Path(os.path.abspath(arg_config.staging_dir))
