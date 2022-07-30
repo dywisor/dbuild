@@ -3,3 +3,4 @@ keyboard-configuration
 locales
 tmux
 ca-certificates
+tcpdump
