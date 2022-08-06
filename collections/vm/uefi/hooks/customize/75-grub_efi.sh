@@ -47,16 +47,32 @@ menuentry "Debian Initial Boot" {
 EOF
 
 
-print_action "Install GRUB/EFI to ESP"
 autodie dodir_mode "${target_esp}" 0700
 autodie dodir_mode "${target_esp_efi}" 0755
 autodie dodir_mode "${target_esp_boot}" 0755
 autodie dodir_mode "${target_esp_debian}" 0755
 
 # copy EFI bootloader to removable path
-autodie install -m 0700 \
-    "${TARGET_ROOTFS:?}/usr/lib/grub/x86_64-efi/monolithic/grubx64.efi" \
-    "${target_esp_boot}/bootx64.efi"
+if feat_all "${OFEAT_UEFI_SECURE_BOOT:-0}"; then
+    # signed bootloader
+    print_action "Install GRUB/EFI to ESP (signed)"
+
+    autodie install -m 0700 \
+        "${TARGET_ROOTFS:?}/usr/lib/shim/shimx64.efi.signed" \
+        "${target_esp_boot}/bootx64.efi"
+
+    autodie install -m 0700 \
+        "${TARGET_ROOTFS:?}/usr/lib/grub/x86_64-efi-signed/grubx64.efi.signed" \
+        "${target_esp_boot}/grubx64.efi"
+
+else
+    # unsigned bootloader
+    print_action "Install GRUB/EFI to ESP (unsigned)"
+
+    autodie install -m 0700 \
+        "${TARGET_ROOTFS:?}/usr/lib/grub/x86_64-efi/monolithic/grubx64.efi" \
+        "${target_esp_boot}/bootx64.efi"
+fi
 
 # create stub grub.cfg that chainloads /boot/grub/grub.cfg
 #  (must be present in <ESP>/EFI/debian/grub.cfg)

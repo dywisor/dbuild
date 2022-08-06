@@ -265,6 +265,12 @@ OFEAT_HAVEGED=0
 #
 OFEAT_ETC_MACHINE_ID=0
 
+# Whether to include support for signed UEFI booting (bootloader/kernel)
+#
+#  NOTE: This feature is not implemented in the base collection.
+#        Include the bootloader/kernel collection to enable it, e.g. vm/uefi.
+OFEAT_UEFI_SECURE_BOOT=0
+
 
 # Network Configuration
 # ---------------------
