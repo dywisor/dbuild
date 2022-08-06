@@ -6,6 +6,5 @@
     - cloud-init?
     - first-boot unattended
       - trigger for sysv
-  - use shim + grub-efi-amd64-signed?
   - smaller kernel image?
     (/lib/modules is huge, considering that most modules are not used at all)
