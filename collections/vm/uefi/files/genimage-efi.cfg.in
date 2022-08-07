@@ -4,8 +4,7 @@ image efi-part.vfat {
         label   = "ESP"
     }
 
-    # 100M
-    size        = "104857600"
+    size        = "@@ESP_SIZE@@"
 
     mountpoint  = "/boot/efi"
 }
@@ -19,7 +18,7 @@ image rootfs.ext4 {
         extraargs = "-E lazy_itable_init=0,lazy_journal_init=0 -U @@ROOTFS_UUID@@"
     }
 
-    size = "2G"
+    size = "@@ROOTFS_SIZE@@"
 
     mountpoint  = "/"
 }

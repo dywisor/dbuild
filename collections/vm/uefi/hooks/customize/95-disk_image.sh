@@ -28,8 +28,10 @@ genimage_config_template="${HOOK_FILESDIR:?}/genimage-efi.cfg.in"
 autodie rm -f -- "${genimage_config}"
 set -- \
     -e "s=@@ESP_PARTUUID@@=${esp_partuuid}=g" \
+    -e "s=@@ESP_SIZE@@=${OCONF_VM_ESP_SIZE:?}=g" \
     -e "s=@@ROOTFS_PARTUUID@@=${rootfs_partuuid}=g" \
-    -e "s=@@ROOTFS_UUID@@=${rootfs_uuid}=g"
+    -e "s=@@ROOTFS_UUID@@=${rootfs_uuid}=g" \
+    -e "s=@@ROOTFS_SIZE@@=${OCONF_VM_ROOTFS_SIZE:?}=g"
 
 if feat_all "${OFEAT_VM_SWAP:-0}"; then
     set -- "${@}" \
@@ -38,7 +40,9 @@ if feat_all "${OFEAT_VM_SWAP:-0}"; then
     print_action "Creating swap space"
     (
         umask 0077 && \
-        autodie truncate --size=536870912 "${DBUILD_STAGING_TMP:?}/swap.file"
+        autodie truncate \
+            --size="${OCONF_VM_SWAP_SIZE:?}" \
+            "${DBUILD_STAGING_TMP:?}/swap.file"
     ) || exit
     autodie mkswap -L swap -U "${swap_uuid}" "${DBUILD_STAGING_TMP:?}/swap.file"
 
