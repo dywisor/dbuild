@@ -396,7 +396,7 @@ def main_build_hooks(cfg):
                         (
                             'rsync -haxHAX \\\n'
                             '    --exclude="__pycache__" \\\n'
-                            '    --exclude="*.py[co] \\\n'
+                            '    --exclude="*.py[co]" \\\n'
                             '    --exclude="[._]*.s[a-v][a-z]" \\\n'
                             '    --exclude="[._]*.sw[a-p]" \\\n'
                             '    --exclude="[._]s[a-rt-v][a-z]" \\\n'
