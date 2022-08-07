@@ -49,6 +49,7 @@ image rootfs.img {
         image = "rootfs.ext4"
     }
 }
+## BEGIN OFEAT_VM_SWAP
 
 # disk image for swap
 image swap.img {
@@ -64,3 +65,4 @@ image swap.img {
         image = "swap.file"
     }
 }
+## END OFEAT_VM_SWAP

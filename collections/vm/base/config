@@ -4,3 +4,9 @@ OFEAT_HAVEGED=1
 
 # disable Predictable Network Interface Names
 OFEAT_IFNAMES=0
+
+# System Configuration
+# --------------------
+
+# Whether to create a swap drive for the VM image
+OFEAT_VM_SWAP=1
