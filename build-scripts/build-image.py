@@ -392,6 +392,7 @@ def main_build_hooks(cfg):
                 rootfs_overlay = bcol.overlay_dir / hook_phase
                 if rootfs_overlay.is_dir():
                     outfh.write(f'## {bcol.name}\n')
+                    outfh.write(f'printf "pull %s overlay: %s\\n" "{hook_phase}" "{bcol.name}"\n')
                     outfh.write(
                         (
                             'rsync -haxHAX \\\n'
