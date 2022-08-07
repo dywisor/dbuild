@@ -1,0 +1,258 @@
+# ESXi vmx config
+# ------------------------------------------------------------------------
+.encoding                           = "UTF-8"
+config.version                      = "8"
+# ------------------------------------------------------------------------
+virtualHW.version                   = "@@VM_HW_VERSION@@"
+displayName                         = "@@VM_NAME@@"
+guestOS                             = "@@VM_OS_TYPE@@"
+# ------------------------------------------------------------------------
+numvcpus                            = "2"
+cpuid.coresPerSocket                = "2"
+vcpu.hotadd                         = "TRUE"
+memSize                             = "2048"
+# ------------------------------------------------------------------------
+scsi0.present                       = "TRUE"
+scsi0.virtualDev                    = "pvscsi"
+scsi0:0.present                     = "TRUE"
+scsi0:0.mode                        = "independent-nonpersistent"
+scsi0:0.deviceType                  = "scsi-hardDisk"
+scsi0:0.fileName                    = "rootfs.vmdk"
+scsi0:0.redo                        = ""
+## BEGIN OFEAT_VM_SWAP
+scsi0:1.present                     = "TRUE"
+scsi0:1.mode                        = "independent-nonpersistent"
+scsi0:1.deviceType                  = "scsi-hardDisk"
+scsi0:1.fileName                    = "swap.vmdk"
+scsi0:1.redo                        = ""
+## END OFEAT_VM_SWAP
+# ------------------------------------------------------------------------
+ethernet0.present                   = "TRUE"
+ethernet0.networkName               = "hostonly"
+ethernet0.virtualDev                = "vmxnet3"
+ethernet0.addressType               = "generated"
+ethernet0.wakeOnPcktRcv             = "FALSE"
+ethernet0.uptCompatibility          = "TRUE"
+# ------------------------------------------------------------------------
+ehci.present                        = "FALSE"
+floppy0.present                     = "FALSE"
+ide1:0.present                      = "FALSE"
+sata0.present                       = "TRUE"
+serial0.present                     = "FALSE"
+parallel0.present                   = "FALSE"
+sound.present                       = "FALSE"
+usb.present                         = "FALSE"
+# ------------------------------------------------------------------------
+pciBridge0.present                  = "TRUE"
+pciBridge4.present                  = "TRUE"
+pciBridge4.virtualDev               = "pcieRootPort"
+pciBridge4.functions                = "8"
+pciBridge5.present                  = "TRUE"
+pciBridge5.virtualDev               = "pcieRootPort"
+pciBridge5.functions                = "8"
+pciBridge6.present                  = "TRUE"
+pciBridge6.virtualDev               = "pcieRootPort"
+pciBridge6.functions                = "8"
+pciBridge7.present                  = "TRUE"
+pciBridge7.virtualDev               = "pcieRootPort"
+pciBridge7.functions                = "8"
+pciBridge0.pciSlotNumber            = "17"
+pciBridge4.pciSlotNumber            = "21"
+pciBridge5.pciSlotNumber            = "22"
+pciBridge6.pciSlotNumber            = "23"
+pciBridge7.pciSlotNumber            = "24"
+scsi0.pciSlotNumber                 = "160"
+scsi0.sasWWID                       = "50 05 05 61 1c 5b b4 d0"
+ethernet0.pciSlotNumber             = "192"
+ehci.pciSlotNumber                  = "33"
+sata0.pciSlotNumber                 = "34"
+hpet0.present                       = "TRUE"
+# ------------------------------------------------------------------------
+powerType.powerOff                  = "soft"
+powerType.powerOn                   = "soft"
+powerType.suspend                   = "soft"
+powerType.reset                     = "soft"
+# ------------------------------------------------------------------------
+toolScripts.afterPowerOn            = "FALSE"
+toolScripts.afterResume             = "FALSE"
+toolScripts.beforeSuspend           = "FALSE"
+toolScripts.beforePowerOff          = "FALSE"
+# ------------------------------------------------------------------------
+firmware                            = "efi"
+#nvram                               = "nvram"
+uuid.bios                           = "56 4d 29 79 f3 52 76 37-d5 59 2c 43 9c 3d 8e 1c"
+uuid.location                       = "56 4d 29 79 f3 52 76 37-d5 59 2c 43 9c 3d 8e 1c"
+# ------------------------------------------------------------------------
+monitor.phys_bits_used              = "43"
+vmotion.checkpointFBSize            = "0"
+vmotion.checkpointSVGAPrimarySize   = "33554432"
+cleanShutdown                       = "TRUE"
+softPowerOff                        = "TRUE"
+# ------------------------------------------------------------------------
+tools.remindInstall                 = "FALSE"
+tools.syncTime                      = "FALSE"
+# ------------------------------------------------------------------------
+#
+# Tuning / Hardening
+# Sources:
+#   - https://www.stigviewer.com/stig/vmware_vsphere_6.7_virtual_machine/
+
+# V-239347 (Medium)
+# Unauthorized removal, connection and modification of devices
+# must be prevented on the virtual machine.
+isolation.device.connectable.disable = "TRUE"
+
+# V-239344 (Medium)
+# Console connection sharing must be limited on the virtual machine.
+# "Allowing two console sessions permits debugging via a shared session."
+RemoteDisplay.maxConnections        = "2"
+
+# V-239345 (Medium)
+# Console access through the VNC protocol must be disabled on the virtual machine.
+RemoteDisplay.vnc.enabled           = "FALSE"
+
+# V-239339
+# Unauthorized floppy devices must be disconnected on the virtual machine.
+# V-239341 (Medium)
+# Unauthorized parallel devices must be disconnected on the virtual machine.
+# V-239342 (Medium)
+# Unauthorized serial devices must be disconnected on the virtual machine.
+# V-239343 (Medium)
+# Unauthorized USB devices must be disconnected on the virtual machine.
+# -- implemented, see above - serial0, floppy0, ... disable --
+
+# V-239348 (Medium)
+# The virtual machine must not be able to obtain host information from the hypervisor.
+tools.guestlib.enableHostInfo       = "FALSE"
+
+# V-242469 (Medium)
+# Encryption must be enabled for vMotion on the virtual machine.
+# -- NOT IMPLEMENTED, ??? --
+
+# V-239338 (Medium)
+# HGFS file transfers must be disabled on the virtual machine.
+isolation.tools.hgfsServerSet.disable = "TRUE"
+
+# V-239337 (Medium)
+# Independent, non-persistent disks must be not be used on the virtual machine.
+# -- implemented, see scsi config above --
+
+# V-239336 (Medium)
+# Virtual disk erasure must be disabled on the virtual machine.
+#   https://kb.vmware.com/s/article/1010941
+isolation.tools.diskWiper.disable   = "TRUE"
+
+# V-239335 (Medium)
+# Virtual disk shrinking must be disabled on the virtual machine.
+isolation.tools.diskShrink.disable  = "TRUE"
+
+# V-239352 (Medium)
+# Use of the virtual machine console must be minimized.
+# -- N/A, organizational aspect --
+
+# V-239353 (Medium)
+# The virtual machine guest operating system must be locked
+# when the last console connection is closed.
+# -- N/A, organizational aspect --
+# (the setting below applies to Windows only)
+tools.guest.desktop.autolock        = "TRUE"
+
+# V-239346 (Low)
+# Informational messages from the virtual machine
+# to the VMX file must be limited on the virtual machine.
+tools.setinfo.sizeLimit             = "1048576"
+
+# V-239340 (Low)
+# Unauthorized CD/DVD devices must be disconnected on the virtual machine.
+# -- implemented, see config above --
+
+# V-239349 (Low)
+# Shared salt values must be disabled on the virtual machine.
+# -- implemented, sched.mem.pshare.salt is not set --
+
+# V-239333 (Low)
+# Drag and drop operations must be disabled on the virtual machine.
+isolation.tools.dnd.disable         = "TRUE"
+
+# V-239332 (Low)
+# Copy operations must be disabled on the virtual machine.
+isolation.tools.copy.disable        = "TRUE"
+
+# V-239334 (Low)
+# Paste operations must be disabled on the virtual machine.
+isolation.tools.paste.disable       = "TRUE"
+
+# V-239351 (Low)
+# System administrators must use templates
+# to deploy virtual machines whenever possible.
+# -- N/A, organizational asepct --
+
+# V-239350 (Low)
+# Access to virtual machines through
+# the dvfilter network APIs must be controlled.
+# -- N/A, dvfilters are not in use --
+
+# V-239354 (Low)
+# 3D features on the virtual machine must be disabled when not required.
+mks.enable3d                        = "FALSE"
+
+# ------------------------------------------------------------------------
+#
+# VMware: Securing Virtual Machines
+# Sources:
+# - https://core.vmware.com/security-configuration-guide
+# - https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.security.doc/GUID-CF45F448-2036-4BE3-8829-4A9335072349.html
+
+#> Disable Unnecessary Functions Inside Virtual Machines
+
+#>> Disable Unused Display Features
+# -- mks.enable3d already set for V-239354 --
+svga.vgaonly = "TRUE"
+#mkfs.enable3d = "FALSE"
+
+#>> Disable Unexposed Features
+# -- isolation.tools.hgfsServerSet.disable already set for V-239338 --
+isolation.tools.memSchedFakeSampleStats.disable = "TRUE"
+isolation.tools.getCreds.disable                = "TRUE"
+isolation.bios.bbs.disable                      = "TRUE"
+#isolation.tools.hgfsServerSet.disable           = "TRUE"
+
+#>> Disable VMware Shared Folders Sharing Host Files to the Virtual Machine
+# -- isolation.tools.hgfsServerSet.disable already set --
+isolation.tools.hgfs.disable                    = "TRUE"
+
+#>> Disable Copy and Paste Operations
+#   Between Guest Operating System and Remote Console
+# -- copy, paste already implemented for V-239332, V-239334 --
+isolation.tools.setGUIOptions.enable            = "FALSE"
+
+#>> Prevent a Virtual Machine User or Process from Disconnecting Devices
+# -- isolation.device.connectable.disable already set for V-239347 --
+isolation.device.edit.disable                   = "TRUE"
+
+#>> Prevent Guest Operating System Processes
+#   from Sending Configuration Messages to the Host
+# (overrides V-239346)
+isolation.tools.setinfo.disable                 = "TRUE"
+
+#>> Avoid Using Independent Nonpersistent Disks
+# -- already implemented for V-239337 --
+
+# ------------------------------------------------------------------------
+
+# Features not exposed in vSphere that could cause vulnerabilities 
+# https://docs.vmware.com/en/VMware-vSphere/6.0/com.vmware.vsphere.vm_admin.doc/GUID-685722FA-9009-439C-9142-18A9E7C592EA.html
+# -- setting these manually should not be needed anymore --
+# https://blogs.vmware.com/vsphere/2017/06/secure-default-vm-disable-unexposed-features.html
+isolation.tools.unity.push.update.disable = "TRUE"
+isolation.tools.ghi.launchmenu.change = "TRUE"
+isolation.tools.ghi.autologon.disable = "TRUE"
+
+# ------------------------------------------------------------------------
+
+# Logging
+#   https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.monitoring.doc/GUID-2DD66869-52C7-42C5-8F5B-145EBD26BBA1.html
+#
+# 10 log files / 100K each
+vmx.log.keepOld                                 = "10"
+vmx.log.rotateSize                              = "102400"

@@ -1,0 +1,20 @@
+# VMware ESXi Configuration
+# -------------------------
+
+# virtual machine hardware version
+#
+#   Ref.: https://kb.vmware.com/s/article/1003746
+#     19 -> ESXi 7.0 U2
+#     18 -> ESXi 7.0 U1
+#     17 -> ESXi 7.0
+#     15 -> ESXi 6.7 U2
+#     14 -> ESXi 6.7
+#     13 -> ESXi 6.5
+#     11 -> ESXi 6.0
+#
+OCONF_VM_ESXI_HW_VERSION='13'
+
+# virtual machine OS type
+#   mostly irrelevant.
+#   'debian11-64' requires ESXi 7.0 or later.
+OCONF_VM_ESXI_OS_TYPE='debian10-64'
