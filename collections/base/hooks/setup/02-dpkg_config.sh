@@ -6,6 +6,7 @@ hook_gen_dpkg_config() {
     printf '%s\n' '# build-time dpkg configuration'
 
 cat << EOF
+force-confdef
 force-confold
 EOF
 }
