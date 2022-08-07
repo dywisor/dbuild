@@ -49,7 +49,7 @@ Host dependencies:
     and [dywisor/genimage-debian](https://github.com/dywisor/genimage-debian/tree/debian/stable/debian) for building a ``.deb``
   - *optional*: ``qemu-img`` from ``qemu-utils``
     (for creating Hyper-V / VMware disk images)
-  - *optional*: VMware ``ovftool` (for creating VMware OVA images)
+  - *optional*: VMware ``ovftool`` (for creating VMware OVA images)
   - *optional*: web proxy for caching ``.deb`` downloads, e.g. ``apt-cacher-ng`` or ``squid``
 
 Example usage:
