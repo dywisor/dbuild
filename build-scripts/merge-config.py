@@ -48,6 +48,10 @@ def main(prog, argv):
     for infile in arg_config.infiles:
         vmap.update(gen_parse_infile(infile))
 
+    if arg_config.extra_vars:
+        vmap.update(arg_config.extra_vars)
+    # --
+
     expand_config(vmap)
 
     if arg_config.query:
@@ -78,6 +82,19 @@ def main(prog, argv):
 
 
 def main_get_arg_parser(prog):
+    def arg_vardef(arg):
+        if not arg:
+            raise argparse.ArgumentTypeError("expected non-empty argument")
+        else:
+            varname, vsep, value = arg.partition('=')
+
+            if not varname or not vsep:
+                raise argparse.ArgumentTypeError("expected VARNAME=[VALUE] argument")
+
+            return (varname, value)
+        # --
+    # --- end of arg_vardef (...) ---
+
     parser = argparse.ArgumentParser(prog=os.path.basename(prog))
 
     parser.add_argument(
@@ -89,6 +106,14 @@ def main_get_arg_parser(prog):
         '-Q', '--query', metavar='<varname>',
         default=None,
         help='query a single variable from the merged config and write it to stdout (and do not write outfile)'
+    )
+
+    parser.add_argument(
+        '-e', '--extra-vars', metavar='<vardef>',
+        dest='extra_vars',
+        default=[], action='append',
+        type=arg_vardef,
+        help='additional variable(s)'
     )
 
     parser.add_argument(
