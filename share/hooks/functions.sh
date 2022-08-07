@@ -158,13 +158,27 @@ target_debconf() {
 }
 
 
-# @autodie @stdin write_to_file ( outfile, [mode], [owner] )
+# @autodie @stdin write_to_file ( outfile, [mode], [owner], [cmdv...] )
 write_to_file() {
-    dofile "${1:?}" "${2:--}" "${3:--}" cat || \
+    local outfile
+    local mode
+    local owner
+
+    outfile="${1:?}"
+    mode="${2-}"
+    owner="${3-}"
+
+    if [ $# -gt 3 ]; then
+        shift 3 || return
+    else
+        set -- cat
+    fi
+
+    dofile "${outfile}" "${mode}" "${owner}" "${@}" || \
         die "Failed to write ${1:?}"
 }
 
-# @autodie @stdin target_write_to_file ( outfile_relpath, [mode], [owner] )
+# @autodie @stdin target_write_to_file ( outfile_relpath, [mode], [owner], [cmdv...] )
 target_write_to_file() {
     local outfile_relpath
     outfile_relpath="${1:?}"; shift
