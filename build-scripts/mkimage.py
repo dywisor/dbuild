@@ -169,8 +169,15 @@ def main_init_staging_dir(cfg, staging_env):
 
     merge_config_cmdv = [
         str(cfg.project_scripts_dir / 'merge-config.py'),
-        '-o', str(staging_env.root / 'config')
+        '-o', str(staging_env.root / 'config'),
     ]
+
+    for varname, value in [
+        ('DBUILD_PROFILE_NAME', cfg.profile_config_name),
+    ]:
+        merge_config_cmdv.extend(['-e', f'{varname}={value}'])
+    # --
+
     merge_config_cmdv.extend(map(str, config_files))
 
     staging_env.run_cmd(merge_config_cmdv)
