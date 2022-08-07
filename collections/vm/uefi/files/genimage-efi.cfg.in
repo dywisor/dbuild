@@ -25,7 +25,7 @@ image rootfs.ext4 {
 }
 
 # disk image containing ESP + rootfs
-image disk.img {
+image rootfs.img {
     hdimage {
         partition-table-type = "gpt"
     }
@@ -34,19 +34,9 @@ image disk.img {
         partition-type-uuid = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
         bootable = true
         offset = 32768
-        size = 104857600
         partition-uuid = "@@ESP_PARTUUID@@"
 
         image = "efi-part.vfat"
-    }
-
-    partition swap {
-        partition-type-uuid = "0657fd6d-a4ab-43c4-84e5-0933c84b4f4f"
-        offset = 104890368
-        size = 536870912
-        partition-uuid = "@@SWAP_PARTUUID@@"
-
-        image = "swap.img"
     }
 
     partition rootfs {
@@ -54,8 +44,23 @@ image disk.img {
         # Root Partition (x86-64)
         partition-type-uuid = "4f68bce3-e8cd-4db1-96e7-fbcaf984b709"
         partition-uuid = "@@ROOTFS_PARTUUID@@"
-        offset = 641761280
+        offset = 0
 
         image = "rootfs.ext4"
+    }
+}
+
+# disk image for swap
+image swap.img {
+    hdimage {
+        partition-table-type = "gpt"
+    }
+
+    partition swap {
+        partition-type-uuid = "0657fd6d-a4ab-43c4-84e5-0933c84b4f4f"
+        offset = 0
+        partition-uuid = "@@SWAP_PARTUUID@@"
+
+        image = "swap.file"
     }
 }

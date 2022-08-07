@@ -34,8 +34,8 @@ autodie rm -f -- "${genimage_config}"
 
 
 print_action "Creating swap space"
-( umask 0077 && autodie truncate --size=536870912 "${DBUILD_STAGING_TMP:?}/swap.img"; ) || exit
-autodie mkswap -L swap -U "${swap_uuid}" "${DBUILD_STAGING_TMP:?}/swap.img"
+( umask 0077 && autodie truncate --size=536870912 "${DBUILD_STAGING_TMP:?}/swap.file"; ) || exit
+autodie mkswap -L swap -U "${swap_uuid}" "${DBUILD_STAGING_TMP:?}/swap.file"
 
 print_action "Building disk image"
 autodie genimage \
