@@ -4,6 +4,18 @@ Prepares a new Debian image so that it can deployed on another host.
 The main purpose is building images for Proxmox PVE containers (LXC),
 but the approach should be quite generic and suitable for other purposes as well.
 
+Currently, the following output image formats are supported:
+
+  - LXC: rootfs tarball
+
+  - KVM: disk image, UEFI boot
+    (VM must be created manually, then attach disk(s) to it)
+
+  - Hyper-V: disk image, UEFI boot
+    (VM must be created manually, then attach disk(s) to it)
+
+  - VMware ESXi/vSphere: OVA VM image, UEFI boot
+
 Depending on the configuration profile, the image will be customized.
 Features include:
 
@@ -21,6 +33,8 @@ building the image takes roughly 30 seconds
 The image size is about 100M compressed (zstd).
 Once deployed, the container boots in half a second.
 
+Building VM images (KVM/Hyper-V/VMware) takes considerably longer (about 2 minutes).
+
 
 Host dependencies:
 
@@ -33,6 +47,9 @@ Host dependencies:
 
     See [pengutronix/genimage](https://github.com/pengutronix/genimage)
     and [dywisor/genimage-debian](https://github.com/dywisor/genimage-debian/tree/debian/stable/debian) for building a ``.deb``
+  - *optional*: ``qemu-img`` from ``qemu-utils``
+    (for creating Hyper-V / VMware disk images)
+  - *optional*: VMware ``ovftool` (for creating VMware OVA images)
   - *optional*: web proxy for caching ``.deb`` downloads, e.g. ``apt-cacher-ng`` or ``squid``
 
 Example usage:
