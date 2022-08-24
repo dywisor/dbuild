@@ -40,7 +40,7 @@ prepare_host_fstab() {
 }
 
 if [ -n "${INITRAMFS_FIRSTBOOT-}" ]; then
-    verbose 'Enabling firstboot mode support, KVM additions'
+    verbose 'Enabling firstboot mode support, VM additions'
 
     copy_exec /sbin/findfs      /sbin
     copy_exec /sbin/sfdisk      /sbin

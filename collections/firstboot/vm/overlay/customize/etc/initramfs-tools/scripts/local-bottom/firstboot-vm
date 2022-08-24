@@ -1,5 +1,5 @@
 #!/bin/sh
-# firstboot-kvm
+# firstboot-vm
 
 PREREQ="firstboot"
 

@@ -4,7 +4,7 @@ DBUILD_TMPDIR_ROOT='/tmp'
 DBUILD_TARGET_COLLECTIONS='
 base systemd default
 vm/base vm/kvm vm/uefi
-firstboot/base firstboot/systemd firstboot/kvm
+firstboot/base firstboot/systemd firstboot/vm
 '
 #DBUILD_APT_PROXY='http://acng:3142/'
 

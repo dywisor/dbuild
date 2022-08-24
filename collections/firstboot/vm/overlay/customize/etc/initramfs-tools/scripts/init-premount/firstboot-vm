@@ -1,5 +1,5 @@
 #!/bin/sh
-# firstboot-kvm
+# firstboot-vm
 #  Reset disk/partition/fs UUIDs and resize rootfs to max size.
 #
 
@@ -342,7 +342,7 @@ if [ -e /can_firstboot ] && [ "${firstboot:-0}" = '1' ]; then
 
     {
         firstboot_rewrite_uuids
-    } 2>&1 | tee /run/initramfs/firstboot-kvm.log
+    } 2>&1 | tee /run/initramfs/firstboot-vm.log
 
     sleep 10
 fi
