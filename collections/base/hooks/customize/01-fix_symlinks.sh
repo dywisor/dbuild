@@ -1,6 +1,6 @@
 #!/bin/sh
 # Rewrite symlinks to $TARGET_ROOTFS
-# so that do no longer point to the build directory's path.
+# so that they do no longer point to the build directory's path.
 # (Rewrite link dst /tmp/tmp_4w466dfgsd/rootfs/usr/lib to /usr/lib, ...)
 #
 
