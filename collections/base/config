@@ -265,6 +265,18 @@ OFEAT_HAVEGED=0
 #
 OFEAT_ETC_MACHINE_ID=0
 
+# Whether to install a kernel image
+#
+#  If set to true (1), then a kernel package name
+#  must also been given via OCONF_KERNEL_IMAGE.
+#
+#  NOTE: This is usually set by a collection
+#        that requires a kernel image depending on the target.
+#        (Containers don't their own kernel, VMs do.)
+#
+OFEAT_KERNEL_IMAGE=0
+OCONF_KERNEL_IMAGE=
+
 # Whether to include support for signed UEFI booting (bootloader/kernel)
 #
 #  NOTE: This feature is not implemented in the base collection.

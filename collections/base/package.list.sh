@@ -47,4 +47,9 @@ if [ "${OFEAT_HAVEGED:-0}" -eq 1 ]; then
     printf '%s\n' haveged
 fi
 
+# kernel image
+if [ "${OFEAT_KERNEL_IMAGE:-0}" -eq 1 ]; then
+    printf '%s\n' ${OCONF_KERNEL_IMAGE}  # noglob is set
+fi
+
 exit 0
