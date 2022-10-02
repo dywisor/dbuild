@@ -1,0 +1,3 @@
+[collection]
+Virtual = true
+Depends = base systemd default lxc/base

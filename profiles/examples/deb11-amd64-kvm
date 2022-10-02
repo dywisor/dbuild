@@ -1,11 +1,7 @@
 # build environment
 DBUILD_TARGET_CODENAME='bullseye'
 DBUILD_TMPDIR_ROOT='/tmp'
-DBUILD_TARGET_COLLECTIONS='
-base systemd default
-vm/base vm/kvm vm/uefi
-firstboot/base firstboot/systemd firstboot/vm
-'
+DBUILD_TARGET_COLLECTIONS='targets/vm/kvm/default'
 #DBUILD_APT_PROXY='http://acng:3142/'
 
 # make sure to set your own root password

@@ -1,0 +1,5 @@
+[collection]
+Virtual = true
+Depends = base systemd default
+  vm/base vm/kvm vm/uefi
+  firstboot/base firstboot/systemd firstboot/vm
