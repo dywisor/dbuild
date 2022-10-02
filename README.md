@@ -82,8 +82,11 @@ pct create 9999 \
 ```
 
 Note that the example config results in a container image
-with a broken SSH *authorized_keys* configuration.
-You should create your own configuration profile in ``profiles/`` instead.
+with an incomplete SSH *authorized_keys* configuration:
+Only public key authentication is allowed, but no valid keys are configured.
+Thus, only the ``root`` user may login locally (but not via SSH).
+You should create your own configuration profile in ``profiles/`` instead
+and specify the proper SSH keys there.
 
 Review the ``profiles/examples/`` for starting configs
 and see ``collections/base/config`` for a list of possible config options.
