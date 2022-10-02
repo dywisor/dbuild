@@ -305,6 +305,10 @@ def main_init_staging_dir(cfg, staging_env):
 
     for varname, value in [
         ('DBUILD_PROFILE_NAME', cfg.profile_config_name),
+        (
+            'DBUILD_TARGET_COLLECTIONS',
+            ' '.join((name for name in cfg.profile_bcol))
+        ),
     ]:
         merge_config_cmdv.extend(['-e', f'{varname}={value}'])
     # --
