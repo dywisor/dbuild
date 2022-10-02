@@ -1,7 +1,7 @@
 # build environment
 DBUILD_TARGET_CODENAME='bullseye'
 DBUILD_TMPDIR_ROOT='/tmp'
-DBUILD_TARGET_COLLECTIONS='targets/vm/esxi/default'
+DBUILD_TARGET_COLLECTIONS='targets/vm/esxi/default targets/hardening/default'
 #DBUILD_APT_PROXY='http://acng:3142/'
 
 # make sure to set your own root password
