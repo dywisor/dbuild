@@ -6,6 +6,7 @@
 
 import argparse
 import collections
+import configparser
 import datetime
 import os
 import pathlib
@@ -94,10 +95,17 @@ def main(prog, argv):
         return False
     # --
 
-    cfg.profile_bcol = collections.OrderedDict((
-        (name, cfg.project_bcol_root / name)
-        for name in want_bcol_names
-    ))
+    if arg_config.resolve_bcol_dep:
+        cfg.profile_bcol = collections.OrderedDict(
+            main_gen_expand_build_collections(cfg, want_bcol_names)
+        )
+
+    else:
+        cfg.profile_bcol = collections.OrderedDict((
+            (name, cfg.project_bcol_root / name)
+            for name in want_bcol_names
+        ))
+    # --
 
     bcol_dir_missing = [
         (name, dirpath) for name, dirpath in cfg.profile_bcol.items()
@@ -139,6 +147,129 @@ def main(prog, argv):
         # -- end with
     # -- end if
 # --- end of main (...) ---
+
+
+def main_gen_expand_build_collections(cfg, wanted):
+    def section_iter_list(d, k):
+        try:
+            v = d[k]
+
+        except KeyError:
+            return
+
+        else:
+            for item in v.split():
+                if item:
+                    yield item
+    # --- end of section_iter_list (...) ---
+
+    # resolve build collection dependencies while preserving
+    # the order requested in the config as much as possible
+    collections_done       = set()
+    collections_todo_queue = []
+    collections_todo_dep   = collections.OrderedDict()
+
+    ## scan for additional dependencies
+    collections_todo_scan = wanted
+
+    while collections_todo_scan:
+        collections_todo_scan_next = []
+
+        for name in collections_todo_scan:
+            if name not in collections_todo_dep:
+                bcol_dir = cfg.project_bcol_root / name
+
+                dep_set = set()
+
+                bcol_meta_config_file = bcol_dir / 'meta'
+                bcol_is_virtual = False
+
+                # NOTE on missing collections: will raise an error in main() later on
+                if bcol_meta_config_file.is_file():
+                    bcol_meta_config_parser = configparser.ConfigParser()
+
+                    # ConfigParser.read() does not throw an error on missing file(s),
+                    # use open() + ConfigParser.read_file() instead
+                    with open(bcol_meta_config_file, 'rt') as fh:
+                        bcol_meta_config_parser.read_file(fh, source=bcol_meta_config_file)
+                    # --
+
+                    try:
+                        bcol_meta_config = bcol_meta_config_parser['collection']
+
+                    except KeyError:
+                        sys.stderr.write(f'WARN: dbuild collection meta config has no [collection] section: {name}\n')
+                        bcol_meta_config = None
+                    # -- end try
+
+                    if bcol_meta_config:
+                        bcol_is_virtual = bcol_meta_config_parser.getboolean('collection', 'virtual', fallback=False)
+
+                        # depends X: add dep on X, enqueue scanning of X
+                        for item in section_iter_list(bcol_meta_config, 'depends'):
+                            dep_set.add(item)
+                            collections_todo_scan_next.append(item)
+                        # --
+
+                        # wants X: enqueue scanning of X
+                        for item in section_iter_list(bcol_meta_config, 'wants'):
+                            collections_todo_scan_next.append(item)
+                        # --
+                    # -- end if
+                # -- end if have collection meta config file
+
+                # virtual collections may pull in dependencies,
+                # but are ignored otherwise
+                # (This skips any collection dir related tasks
+                # such as copying files from overlay and executing hooks.)
+                if not bcol_is_virtual:
+                    collections_todo_queue.append((name, bcol_dir))
+                    collections_todo_dep[name] = dep_set
+                # -- end if
+            # -- end if dependencies already scanned?
+
+            collections_todo_scan = collections_todo_scan_next
+        # -- end for
+    # -- end while scan for dependencies
+
+    ## resolve dependencies
+    while collections_todo_queue:
+        resolved_any_dep = False
+        collections_todo_queue_next = []
+
+        for name, bcol_dir in collections_todo_queue:
+            if name not in collections_done:
+                dep = collections_todo_dep[name]
+
+                if not dep:
+                    # -> resolved (no pending dependencies)
+                    collections_done.add(name)
+
+                    del collections_todo_dep[name]
+
+                    # remove name from all remaining dependencies
+                    for other_dep_set in collections_todo_dep.values():
+                        other_dep_set.discard(name)
+                    # --
+
+                    yield (name, bcol_dir)
+
+                    resolved_any_dep = True
+
+                else:
+                    # -> not resolved (yet)
+                    collections_todo_queue_next.append((name, bcol_dir))
+                # -- end if
+            # -- end if name not resolved yet (pre dep check)
+        # -- end for
+
+        if not resolved_any_dep:
+            raise RuntimeError("Cannot resolve build collection dependencies", collections_todo_dep)
+        # -- end if
+
+        collections_todo_queue = collections_todo_queue_next
+    # -- end while
+# --- end of main_gen_expand_build_collections (...) ---
 
 
 def main_init_staging_dir(cfg, staging_env):
@@ -267,6 +398,20 @@ def get_arg_parser(prog):
         dest='quiet',
         default=False, action='store_true',
         help='suppress informational output'
+    )
+
+    parser.add_argument(
+        '--resolve-bcol-dep',
+        dest='resolve_bcol_dep',
+        default=True, action='store_true',
+        help='resolve build collection dependencies (enabled by default)'
+    )
+
+    parser.add_argument(
+        '--no-resolve-bcol-dep',
+        dest='resolve_bcol_dep',
+        default=argparse.SUPPRESS, action='store_false',
+        help='do not resolve build collection dependencies'
     )
 
     parser.add_argument(

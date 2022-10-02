@@ -1,0 +1,2 @@
+[collection]
+Depends = firstboot/base systemd
