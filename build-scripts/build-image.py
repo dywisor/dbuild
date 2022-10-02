@@ -395,23 +395,7 @@ def main_build_hooks(cfg):
                     outfh.write(f'printf "pull %s overlay: %s\\n" "{hook_phase}" "{bcol.name}"\n')
                     outfh.write(
                         (
-                            'rsync -haxHAX \\\n'
-                            '    --exclude="__pycache__" \\\n'
-                            '    --exclude="*.py[co]" \\\n'
-                            '    --exclude="[._]*.s[a-v][a-z]" \\\n'
-                            '    --exclude="[._]*.sw[a-p]" \\\n'
-                            '    --exclude="[._]s[a-rt-v][a-z]" \\\n'
-                            '    --exclude="[._]ss[a-gi-z]" \\\n'
-                            '    --exclude="[._]sw[a-p]" \\\n'
-                            '    --exclude="Session.vim" \\\n'
-                            '    --exclude=".netrwhist" \\\n'
-                            '    --exclude="*~" \\\n'
-                            '    --exclude=".DS_Store" \\\n'
-                            '    --exclude=".AppleDouble" \\\n'
-                            '    --exclude=".LSOverride" \\\n'
-                            '    -- \\\n'
-                            '    {src}/ \\\n'
-                            '    "${{TARGET_ROOTFS:?}}/" || exit\n'
+                            'dbuild_import_overlay {src} || exit\n'
                         ).format(
                             src=shlex.quote(str(rootfs_overlay))
                         )

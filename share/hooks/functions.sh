@@ -205,3 +205,48 @@ get_user_extra_groups() {
         fi
     fi
 }
+
+# int dbuild_import_overlay ( overlay_src, [overlay_dst_rel:="/"], [args...] )
+#
+#   Recursively copies files from an overlay directory
+#   to the target rootfs (or a subdirectory thereof).
+#
+dbuild_import_overlay() {
+    local overlay_src
+    local overlay_dst
+
+    overlay_src="${1:?}"
+    case "${2-}" in
+        ''|'/')
+            overlay_dst="${TARGET_ROOTFS:?}"
+        ;;
+        *)
+            overlay_dst="${TARGET_ROOTFS:?}/${2#/}"
+        ;;
+    esac
+
+    if [ $# -gt 2 ]; then
+        shift 2 || return
+    else
+        set --
+    fi
+
+    rsync -haxHAX \
+        --exclude='__pycache__' \
+        --exclude='*.py[co]' \
+        --exclude='[._]*.s[a-v][a-z]' \
+        --exclude='[._]*.sw[a-p]' \
+        --exclude='[._]s[a-rt-v][a-z]' \
+        --exclude='[._]ss[a-gi-z]' \
+        --exclude='[._]sw[a-p]' \
+        --exclude='Session.vim' \
+        --exclude='.netrwhist' \
+        --exclude='*~' \
+        --exclude='.DS_Store' \
+        --exclude='.AppleDouble' \
+        --exclude='.LSOverride' \
+        "${@}" \
+        -- \
+        "${overlay_src%/}/" \
+        "${overlay_dst%/}/" || return
+}
