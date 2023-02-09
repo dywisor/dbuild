@@ -42,9 +42,9 @@ target_boot_kver="$(
 )"
 [ -n "${target_boot_kver}" ] || die "Failed to get installed kernel version"
 
-# write firstboot grub.cfg
-autodie dodir_mode "${target_boot}/grub" 0755
-autodie write_to_file "${target_boot}/grub/grub.cfg" 0644 << EOF
+# code snippet for generating grub.cfg (using script-global vars)
+gen_grub_cfg() {
+cat << EOF
 set default="0"
 set timeout="5"
 
@@ -61,6 +61,11 @@ menuentry "Debian Initial Boot" {
     initrd ${boot_fs_prefix}/initrd.img-${target_boot_kver}
 }
 EOF
+}
+
+# write firstboot grub.cfg
+autodie dodir_mode "${target_boot}/grub" 0755
+autodie write_to_file "${target_boot}/grub/grub.cfg" 0644 gen_grub_cfg
 
 
 autodie dodir_mode "${target_esp}" 0700
