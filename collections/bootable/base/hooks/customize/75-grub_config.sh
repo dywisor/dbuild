@@ -1,6 +1,6 @@
 #!/bin/sh
 
-print_action "Configure GRUB/EFI"
+print_action "Configure GRUB/generic"
 
 # read boot or rootfs UUID
 boot_fs_uuid=
@@ -57,10 +57,6 @@ esac
 
 # directory paths
 target_boot="${TARGET_ROOTFS}/boot"
-target_esp="${target_boot}/efi"
-target_esp_efi="${target_esp}/EFI"
-target_esp_boot="${target_esp_efi}/boot"
-target_esp_debian="${target_esp_efi}/debian"
 
 # create /boot in target (should already exist)
 autodie dodir_mode "${target_boot}" 0755
@@ -109,39 +105,3 @@ EOF
 # write firstboot grub.cfg
 autodie dodir_mode "${target_boot}/grub" 0755
 autodie write_to_file "${target_boot}/grub/grub.cfg" 0644 gen_grub_cfg
-
-
-autodie dodir_mode "${target_esp}" 0700
-autodie dodir_mode "${target_esp_efi}" 0755
-autodie dodir_mode "${target_esp_boot}" 0755
-autodie dodir_mode "${target_esp_debian}" 0755
-
-# copy EFI bootloader to removable path
-if feat_all "${OFEAT_UEFI_SECURE_BOOT:-0}"; then
-    # signed bootloader
-    print_action "Install GRUB/EFI to ESP (signed)"
-
-    autodie install -m 0700 \
-        "${TARGET_ROOTFS:?}/usr/lib/shim/shimx64.efi.signed" \
-        "${target_esp_boot}/bootx64.efi"
-
-    autodie install -m 0700 \
-        "${TARGET_ROOTFS:?}/usr/lib/grub/x86_64-efi-signed/grubx64.efi.signed" \
-        "${target_esp_boot}/grubx64.efi"
-
-else
-    # unsigned bootloader
-    print_action "Install GRUB/EFI to ESP (unsigned)"
-
-    autodie install -m 0700 \
-        "${TARGET_ROOTFS:?}/usr/lib/grub/x86_64-efi/monolithic/grubx64.efi" \
-        "${target_esp_boot}/bootx64.efi"
-fi
-
-# create stub grub.cfg that chainloads /boot/grub/grub.cfg
-#  (must be present in <ESP>/EFI/debian/grub.cfg)
-autodie write_to_file "${target_esp_debian}/grub.cfg" 0600 << EOF
-search.fs_uuid ${boot_fs_uuid} root
-set prefix=(\$root)'${boot_fs_prefix}/grub'
-configfile \$prefix/grub.cfg
-EOF
