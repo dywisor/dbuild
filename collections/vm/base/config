@@ -17,8 +17,3 @@ OCONF_VM_ROOTFS_SIZE='2G'
 
 # size of the UEFI ESP (if any)
 OCONF_VM_ESP_SIZE='100M'
-
-# VM images require a kernel image,
-# use Debians generic kernel by default
-OFEAT_KERNEL_IMAGE=1
-OCONF_KERNEL_IMAGE=linux-image-amd64

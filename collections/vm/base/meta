@@ -1,2 +1,2 @@
 [collection]
-Depends = base
+Depends = base bootable/base

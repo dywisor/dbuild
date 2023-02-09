@@ -1,0 +1,8 @@
+# System Configuration
+# --------------------
+
+# bootable images require a kernel image,
+# use Debians generic kernel by default
+# FIXME: amd64-specific
+OFEAT_KERNEL_IMAGE=1
+OCONF_KERNEL_IMAGE=linux-image-amd64
