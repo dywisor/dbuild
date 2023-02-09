@@ -1,0 +1,6 @@
+# System Configuration
+# --------------------
+
+# rootfs filesystem type
+# -- HARDCODED, do not change --
+OCONF_ROOTFS_TYPE='ext4'
