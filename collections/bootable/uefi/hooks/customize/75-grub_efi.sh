@@ -22,6 +22,21 @@ else
     boot_fs_prefix=/boot
 fi
 
+# initialize additional grub config vars
+grub_insmod_list=
+case "${OCONF_BOOT_TYPE-}" in
+    'uefi')
+        grub_insmod_list="${grub_insmod_list} part_gpt"
+    ;;
+    *)
+        grub_insmod_list="${grub_insmod_list} part_msdos"
+    ;;
+esac
+
+grub_insmod_list="${grub_insmod_list} ext2"
+
+
+# directory paths
 target_boot="${TARGET_ROOTFS}/boot"
 target_esp="${target_boot}/efi"
 target_esp_efi="${target_esp}/EFI"
@@ -44,13 +59,22 @@ target_boot_kver="$(
 
 # code snippet for generating grub.cfg (using script-global vars)
 gen_grub_cfg() {
+    local iter
+
 cat << EOF
 set default="0"
 set timeout="5"
 
 menuentry "Debian Initial Boot" {
-    insmod part_gpt
-    insmod ext2
+EOF
+
+    for iter in ${grub_insmod_list}; do
+cat << EOF
+    insmod ${iter}
+EOF
+    done
+
+cat << EOF
 
     search --no-floppy --fs-uuid --set=root ${boot_fs_uuid}
 
