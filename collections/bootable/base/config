@@ -15,6 +15,11 @@ OCONF_BOOT_TYPE=''
 # only if the collection taking care of mkfs states so.
 OCONF_ROOTFS_TYPE=''
 
+# whether /boot is on a separate filesystem
+# Note that this cannot be set freely,
+# only if the collection taking care of mkfs states so.
+OFEAT_SEPARATE_BOOT=0
+
 # bootable images require a kernel image,
 # use Debians generic kernel by default
 # FIXME: amd64-specific
