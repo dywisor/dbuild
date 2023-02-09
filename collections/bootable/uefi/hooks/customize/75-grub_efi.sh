@@ -39,6 +39,21 @@ esac
 # NOTE/FIXME: boot fstype is hardcoded to ext4 (-> insmod ext2)
 grub_insmod_list="${grub_insmod_list} ext2"
 
+#> grub boot param: rootflags
+grub_rootflags=
+
+case "${OCONF_ROOTFS_TYPE-}" in
+    'btrfs')
+        # btrfs uses the hard-coded "@rootfs" subvolume
+        grub_rootflags='subvol=@rootfs'
+
+        # also insmod btrfs when /boot is on the rootfs
+        if [ "${rootfs_uuid}" = "${boot_fs_uuid}" ]; then
+            grub_insmod_list="${grub_insmod_list} btrfs"
+        fi
+    ;;
+esac
+
 
 # directory paths
 target_boot="${TARGET_ROOTFS}/boot"
@@ -83,7 +98,7 @@ cat << EOF
     search --no-floppy --fs-uuid --set=root ${boot_fs_uuid}
 
     echo 'Loading Kernel ${target_boot_kver}'
-    linux ${boot_fs_prefix}/vmlinuz-${target_boot_kver} root=UUID=${rootfs_uuid} ro firstboot=1
+    linux ${boot_fs_prefix}/vmlinuz-${target_boot_kver} root=UUID=${rootfs_uuid} ${grub_rootflags:+rootflags=${grub_rootflags}} ro firstboot=1
 
     echo 'Loading initial ramdisk ...'
     initrd ${boot_fs_prefix}/initrd.img-${target_boot_kver}

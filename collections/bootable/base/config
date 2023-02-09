@@ -10,6 +10,11 @@
 #
 OCONF_BOOT_TYPE=''
 
+# rootfs filesystem type
+# Note that this cannot be set freely,
+# only if the collection taking care of mkfs states so.
+OCONF_ROOTFS_TYPE=''
+
 # bootable images require a kernel image,
 # use Debians generic kernel by default
 # FIXME: amd64-specific
