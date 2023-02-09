@@ -1,9 +1,24 @@
 #!/bin/sh
 
-# read rootfs UUID
-rootfs_uuid=
+# read boot or rootfs UUID
+boot_fs_uuid=
+boot_fs_prefix=
+
 read -r rootfs_uuid < "${DBUILD_STAGING_TMP:?}/uuid.rootfs" \
     && [ -n "${rootfs_uuid}" ] || die "Failed to read rootfs uuid"
+
+if {
+    [ -r "${DBUILD_STAGING_TMP:?}/uuid.boot" ] && \
+    read -r boot_fs_uuid < "${DBUILD_STAGING_TMP:?}/uuid.boot" && \
+    [ -n "${boot_fs_uuid}" ]
+}; then
+    # booting from separate /boot
+    boot_fs_prefix=
+
+else
+    boot_fs_uuid="${rootfs_uuid}"
+    boot_fs_prefix=/boot
+fi
 
 print_action "Configure GRUB/EFI"
 
@@ -37,13 +52,13 @@ menuentry "Debian Initial Boot" {
     insmod part_gpt
     insmod ext2
 
-    search --no-floppy --fs-uuid --set=root ${rootfs_uuid}
+    search --no-floppy --fs-uuid --set=root ${boot_fs_uuid}
 
     echo 'Loading Kernel ${target_boot_kver}'
-    linux /boot/vmlinuz-${target_boot_kver} root=UUID=${rootfs_uuid} ro firstboot=1
+    linux ${boot_fs_prefix}/vmlinuz-${target_boot_kver} root=UUID=${rootfs_uuid} ro firstboot=1
 
     echo 'Loading initial ramdisk ...'
-    initrd /boot/initrd.img-${target_boot_kver}
+    initrd ${boot_fs_prefix}/initrd.img-${target_boot_kver}
 }
 EOF
 
@@ -78,7 +93,7 @@ fi
 # create stub grub.cfg that chainloads /boot/grub/grub.cfg
 #  (must be present in <ESP>/EFI/debian/grub.cfg)
 autodie write_to_file "${target_esp_debian}/grub.cfg" 0600 << EOF
-search.fs_uuid ${rootfs_uuid} root 
-set prefix=(\$root)'/boot/grub'
+search.fs_uuid ${boot_fs_uuid} root
+set prefix=(\$root)'${boot_fs_prefix}/grub'
 configfile \$prefix/grub.cfg
 EOF
