@@ -1,5 +1,7 @@
 #!/bin/sh
 
+print_action "Configure GRUB/EFI"
+
 # read boot or rootfs UUID
 boot_fs_uuid=
 boot_fs_prefix=
@@ -19,8 +21,6 @@ else
     boot_fs_uuid="${rootfs_uuid}"
     boot_fs_prefix=/boot
 fi
-
-print_action "Configure GRUB/EFI"
 
 target_boot="${TARGET_ROOTFS}/boot"
 target_esp="${target_boot}/efi"
