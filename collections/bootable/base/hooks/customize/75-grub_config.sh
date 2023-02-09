@@ -104,4 +104,4 @@ EOF
 
 # write firstboot grub.cfg
 autodie dodir_mode "${target_boot}/grub" 0755
-autodie write_to_file "${target_boot}/grub/grub.cfg" 0644 gen_grub_cfg
+autodie write_to_file "${target_boot}/grub/grub.cfg" 0644 0:0 gen_grub_cfg
