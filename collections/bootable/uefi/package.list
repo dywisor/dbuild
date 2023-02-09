@@ -1,0 +1,3 @@
+grub-efi-amd64
+efibootmgr
+dosfstools

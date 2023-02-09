@@ -17,6 +17,7 @@ target_esp_debian="${target_esp_efi}/debian"
 autodie dodir_mode "${target_boot}" 0755
 
 # get most recent installed kernel version
+# FIXME: amd64-specific
 target_boot_kver="$(
      find "${target_boot}" -mindepth 1 -maxdepth 1 \
          -type f -name 'vmlinuz-*-amd64' \

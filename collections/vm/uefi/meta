@@ -1,2 +1,2 @@
 [collection]
-Depends = vm/base
+Depends = vm/base bootable/uefi
