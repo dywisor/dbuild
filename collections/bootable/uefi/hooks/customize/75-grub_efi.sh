@@ -24,6 +24,8 @@ fi
 
 # initialize additional grub config vars
 grub_insmod_list=
+
+#> grub insmod: partitioning scheme
 case "${OCONF_BOOT_TYPE-}" in
     'uefi')
         grub_insmod_list="${grub_insmod_list} part_gpt"
@@ -33,6 +35,8 @@ case "${OCONF_BOOT_TYPE-}" in
     ;;
 esac
 
+#> grub insmod: fstype for loading files from /boot
+# NOTE/FIXME: boot fstype is hardcoded to ext4 (-> insmod ext2)
 grub_insmod_list="${grub_insmod_list} ext2"
 
 
