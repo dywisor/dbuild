@@ -40,16 +40,47 @@ def expand_config(vmap):
 # --- end of expand_config (...) ---
 
 
+def merge_config_vars(vmap, new_vars, *, varnames_merge_value=None):
+    if varnames_merge_value is None:
+        varnames_merge_value = set()
+    # --
+
+    for varname, value in new_vars:
+        if varname in varnames_merge_value:
+            old_value = vmap.get(varname, None)
+            new_value = ' '.join((
+                item for item in (old_value, value) if item
+            ))
+
+            vmap[varname] = new_value
+
+        else:
+            # replace any existing value
+            vmap[varname] = value
+        # --
+    # -- end for
+# --- end of merge_config_vars (...) ---
+
+
 def main(prog, argv):
     arg_parser = main_get_arg_parser(prog)
     arg_config = arg_parser.parse_args(argv)
 
+    varnames_merge_value = set(arg_config.merge_vars)
+
     vmap = {}
     for infile in arg_config.infiles:
-        vmap.update(gen_parse_infile(infile))
+        merge_config_vars(
+            vmap, gen_parse_infile(infile),
+            varnames_merge_value=varnames_merge_value
+        )
+    # -- end for
 
     if arg_config.extra_vars:
-        vmap.update(arg_config.extra_vars)
+        merge_config_vars(
+            vmap, arg_config.extra_vars,
+            varnames_merge_value=varnames_merge_value
+        )
     # --
 
     expand_config(vmap)
@@ -106,6 +137,13 @@ def main_get_arg_parser(prog):
         '-Q', '--query', metavar='<varname>',
         default=None,
         help='query a single variable from the merged config and write it to stdout (and do not write outfile)'
+    )
+
+    parser.add_argument(
+        '-m', '--merge-vars', metavar='<varname>',
+        dest='merge_vars',
+        default=[], action='append',
+        help='variables that should be merged with existing values (instead of replacing them)'
     )
 
     parser.add_argument(
