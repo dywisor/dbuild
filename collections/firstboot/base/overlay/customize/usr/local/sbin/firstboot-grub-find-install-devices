@@ -1,0 +1,95 @@
+#!/bin/sh
+# Tries to determine a stable disk/by-X link
+# for installing grub on the device containing the boot partition.
+#
+# NOTE: limited implementation, cannot deal with layered block devices
+#       (e.g. LVM, LUKS, MDADM, ...)
+#
+set -f
+
+while getopts 'h' opt; do
+    case "${opt}" in
+        'h')
+            printf 'Usage: %s\n' "${0}"
+            exit 0
+        ;;
+        *)
+            printf 'Usage error.\n' 1>&2
+            exit 64
+        ;;
+    esac
+done
+
+shift $(( OPTIND - 1 ))
+
+if [ $# -gt 0 ]; then
+    printf 'Usage error: no positional arguments accepted.\n' 1>&2
+    exit 64
+fi
+
+boot_block_dev=
+boot_block_dev_real=
+
+if \
+    boot_part_block_dev="$( findmnt -rno SOURCE -f -T /boot/grub )" && \
+    [ -n "${boot_part_block_dev}" ] && \
+    { read -r boot_part_block_dev_id < "/sys/class/block/${boot_part_block_dev##*/}/dev"; } && \
+    [ -n "${boot_part_block_dev_id}" ]
+then
+    boot_block_dev_id="${boot_part_block_dev_id%:*}:0"
+    boot_block_dev_sys="/sys/dev/block/${boot_block_dev_id}"
+
+    if \
+        [ -d "${boot_block_dev_sys}" ] &&
+        boot_block_dev_real_name="$( sed -n -r -e 's,^DEVNAME=,,p' < "${boot_block_dev_sys}/uevent" )" && \
+        [ -n "${boot_block_dev_real_name}" ] && \
+        boot_block_dev_real="/dev/${boot_block_dev_real_name}" && \
+        [ -b "${boot_block_dev_real}" ]
+    then
+        can_install=0
+        case "${boot_block_dev_real}" in
+            /dev/[vhs]d?*|/dev/nvme*)
+                can_install=1
+            ;;
+
+            *)
+                # would need to resolve LVM/LUKS/MDADM/...
+                can_install=0
+            ;;
+        esac
+
+        if [ "${can_install}" = '1' ]; then
+            set +f
+            for dev_link_dir in /dev/disk/by-id /dev/disk/by-path; do
+                if [ -d "${dev_link_dir}" ]; then
+                    for dev_link in "${dev_link_dir}/"*; do
+                        dev_link_target="$( readlink -f "${dev_link}" )"
+
+                        if \
+                            [ -n "${dev_link_target}" ] && \
+                            [ "${dev_link_target}" = "${boot_block_dev_real}" ]
+                        then
+                            boot_block_dev="${dev_link}"
+                            break 2  # LOOP-BREAK for dev_link_dir
+                        fi
+                    done
+                fi
+            done
+
+        else
+            printf 'Ignoring %s as potential grub install device' "${boot_block_dev_real}" 1>&2
+        fi
+    fi
+fi
+
+if [ -z "${boot_block_dev}" ]; then
+    printf 'Could not locate boot block device\n' 1>&2
+    exit 2
+fi
+
+# output install device(s)
+#  (current implementation finds only one device)
+printf '%s\n' \
+    "${boot_block_dev}"
+
+exit 0

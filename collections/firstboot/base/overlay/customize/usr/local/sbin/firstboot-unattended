@@ -55,8 +55,7 @@ fi
     INITRAMFS_FIRSTBOOT="" update-initramfs -u -k all || exit
 
     printf 'Reinstalling GRUB\n'
-    grub-install || exit
-    update-grub || exit
+    /usr/local/sbin/firstboot-grub-install || exit
 ) || exit
 
 

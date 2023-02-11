@@ -1,0 +1,68 @@
+#!/bin/sh
+# Firstboot script that (re-)installs grub.
+#
+# NOTE: limited implementation, cannot deal with layered block devices
+#       (e.g. LVM, LUKS, MDADM, ...)
+#
+set -f
+
+while getopts 'h' opt; do
+    case "${opt}" in
+        'h')
+            printf 'Usage: %s\n' "${0}"
+            exit 0
+        ;;
+        *)
+            printf 'Usage error.\n' 1>&2
+            exit 64
+        ;;
+    esac
+done
+
+shift $(( OPTIND - 1 ))
+
+if [ $# -gt 0 ]; then
+    printf 'Usage error: no positional arguments accepted.\n' 1>&2
+    exit 64
+fi
+
+# grub-install varies depending on boot type: BIOS / UEFI
+if [ -d /sys/firmware/efi ]; then
+    # Reinstall GRUB [FATAL]
+    printf 'Reinstalling GRUB (UEFI)\n'
+    grub-install || exit
+
+elif dpkg -s grub-pc 1>/dev/null 2>&1; then
+    # BIOS variant
+    printf 'Trying to detect boot block device for GRUB BIOS boot\n'
+
+    if \
+        grub_install_devices="$( /usr/local/sbin/firstboot-grub-find-install-devices )" && \
+        set -- ${grub_install_devices} && \
+        [ $# -gt 0 ]
+    then
+        # Configure new GRUB install device(s) [NONFATAL]
+        printf 'Configuring GRUB install devices\n'
+        {
+        debconf-set-selections << EOF
+grub-pc grub-pc/install_devices multiselect ${*}
+EOF
+        } || :
+
+        # Reinstall GRUB [FATAL]
+        for grub_install_device in "${@}"; do
+            printf 'Reinstalling GRUB (BIOS) on %s\n' "${grub_install_device}"
+            grub-install "${grub_install_device}" || exit
+        done
+    fi
+
+else
+    printf 'GRUB not installed?\n'
+    exit 2
+fi
+
+# Update grub configuration [FATAL]
+printf 'Generating GRUB configuration\n'
+update-grub || exit
+
+exit 0
