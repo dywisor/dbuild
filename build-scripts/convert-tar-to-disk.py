@@ -182,6 +182,16 @@ class SimpleDiskConfig:
 # --- end of SimpleDiskConfig ---
 
 
+@dataclass
+class MountEntry:
+    mnt_fsname      : str
+    # mnt_dir (from mount root's perspective, e.g. '/boot')
+    mnt_dir         : str
+    mnt_type        : str
+    mnt_opts        : str
+# --- end of MountEntry ---
+
+
 class CommandWrapper(object):
 
     def normalize_cmdv(self, cmdv):
@@ -376,7 +386,7 @@ class DJ(object):
         # mount fs
         self.env.run_as_admin(cmdv, check=True)
 
-        mnt_entry = (mnt_fsname, mnt_dir_root_pov, mnt_type, mnt_opts_str)
+        mnt_entry = MountEntry(mnt_fsname, mnt_dir_root_pov, mnt_type, mnt_opts_str)
         self.opened_mount[mnt_dir_abs] = mnt_entry
         return (mnt_dir_abs, mnt_entry)
     # --- end of mount_open (...) ---
@@ -1164,14 +1174,14 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
         fstab_lines = [
             'UUID={fs_uuid} {mnt_dir} {mnt_type} {mnt_opts} 0 {mnt_passno}'.format(
                 fs_uuid=volume_config.fs_uuid,
-                mnt_dir=mnt_ent[1],
-                mnt_type=mnt_ent[2],
-                mnt_opts=mnt_ent[3],
+                mnt_dir=mnt_ent.mnt_dir,
+                mnt_type=mnt_ent.mnt_type,
+                mnt_opts=mnt_ent.mnt_opts,
                 # enable fsck for select filesystems only
                 # then use passno 1 for rootfs and 2 for everything else
                 mnt_passno=(
-                    0 if mnt_ent[2] not in {'ext4'}
-                    else (1 if mnt_ent[1] == '/' else 2)
+                    0 if mnt_ent.mnt_type not in {'ext4'}
+                    else (1 if mnt_ent.mnt_dir == '/' else 2)
                 )
             )
             for volume_config, mnt_ent in fstab_entries
