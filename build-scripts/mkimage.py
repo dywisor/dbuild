@@ -303,6 +303,13 @@ def main_init_staging_dir(cfg, staging_env):
         '-o', str(staging_env.root / 'config'),
     ]
 
+    # value-merged varnames
+    for merged_varname in [
+        'OCONF_BOOT_CMDLINE',
+    ]:
+        merge_config_cmdv.extend(['-m', merged_varname])
+    # --
+
     for varname, value in [
         ('DBUILD_PROFILE_NAME', cfg.profile_config_name),
         (
