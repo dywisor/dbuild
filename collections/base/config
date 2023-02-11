@@ -265,6 +265,20 @@ OFEAT_HAVEGED=0
 #
 OFEAT_ETC_MACHINE_ID=0
 
+# Whether to enable various tmpfs mounts
+#
+#   Disabled in the base configuration,
+#   should only be enabled in more specific collections.
+#
+#   If disabled (unset or set to 0),
+#   this will disable all OCONF_TMPFS_* mounts.
+#
+OFEAT_TMPFS_MOUNTS=0
+OCONF_TMPFS_DEV_SHM_SIZE='10%'
+OCONF_TMPFS_TMP_SIZE='20%'
+OCONF_TMPFS_VAR_TMP_SIZE='20%'
+OCONF_TMPFS_RUN_SIZE='10%'
+
 # Whether to configure custom kernel boot parameters
 #
 #   This is a value-merged variable,

@@ -3,3 +3,10 @@ OFEAT_IFNAMES=0
 
 # /etc/resolv.conf is usually created when importing the container
 OFEAT_RESOLV_CONF=0
+
+# tmpfs mounts
+OFEAT_TMPFS_MOUNTS=1
+OCONF_TMPFS_DEV_SHM_SIZE='120m'
+OCONF_TMPFS_TMP_SIZE='120m'
+OCONF_TMPFS_VAR_TMP_SIZE='120m'
+OCONF_TMPFS_RUN_SIZE='100m'
