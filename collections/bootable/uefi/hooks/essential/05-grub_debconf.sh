@@ -5,3 +5,9 @@ autodie target_debconf << EOF
 grub-efi-amd64 grub2/update_nvram boolean false
 grub-efi-amd64 grub2/force_efi_extra_removable boolean true
 EOF
+
+if feat_all "${OFEAT_BOOT_CMDLINE:-0}"; then
+    autodie target_debconf << EOF
+grub-efi-amd64 grub2/linux_cmdline string ${OCONF_BOOT_CMDLINE-}
+EOF
+fi

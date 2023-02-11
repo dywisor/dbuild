@@ -265,6 +265,14 @@ OFEAT_HAVEGED=0
 #
 OFEAT_ETC_MACHINE_ID=0
 
+# Whether to configure custom kernel boot parameters
+#
+#   This is a value-merged variable,
+#   (re)setting it will extend its original value.
+#
+OFEAT_BOOT_CMDLINE=0
+OCONF_BOOT_CMDLINE=''
+
 # Whether to install a kernel image
 #
 #  If set to true (1), then a kernel package name
