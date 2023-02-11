@@ -44,6 +44,7 @@ fi
 # Remove firstboot initramfs hooks/scripts [NONFATAL]
 (
     printf 'Removing firstboot initramfs scripts\n'
+    find /etc/initramfs-tools/conf.d -type f -name '*-firstboot*' -delete
     find /etc/initramfs-tools -type f -name 'firstboot*' -delete
 ) || :
 
