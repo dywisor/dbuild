@@ -1,0 +1,69 @@
+#
+# firstboot initramfs.conf for hardware targets
+# This file will be automatically removed by firstboot-unattended.
+#
+
+#
+# MODULES: [ most | netboot | dep | list ]
+#
+# most - Add most filesystem and all harddrive drivers.
+#
+# dep - Try and guess which modules to load.
+#
+# netboot - Add the base modules, network modules, but skip block devices.
+#
+# list - Only include modules from the 'additional modules' list
+#
+
+# update-initramfs pulls in the build host's hardware,
+# which rarely matches the target hardware
+# Use a bloated initramfs for the initial boot.
+MODULES=most
+
+#
+# BUSYBOX: [ y | n | auto ]
+#
+# Use busybox shell and utilities.  If set to n, klibc utilities will be used.
+# If set to auto (or unset), busybox will be used if installed and klibc will
+# be used otherwise.
+#
+
+BUSYBOX=y
+
+#
+# KEYMAP: [ y | n ]
+#
+# Load a keymap during the initramfs stage.
+#
+
+KEYMAP=n
+
+#
+# COMPRESS: [ gzip | bzip2 | lz4 | lzma | lzop | xz | zstd ]
+#
+
+COMPRESS=zstd
+
+#
+# DEVICE: ...
+#
+# Specify a specific network interface, like eth0
+# Overridden by optional ip= or BOOTIF= bootarg
+#
+
+DEVICE=
+
+#
+# NFSROOT: [ auto | HOST:MOUNT ]
+#
+
+NFSROOT=auto
+
+#
+# FSTYPE: ...
+#
+# The filesystem type(s) to support, or "auto" to use the current root
+# filesystem type
+#
+
+FSTYPE=btrfs

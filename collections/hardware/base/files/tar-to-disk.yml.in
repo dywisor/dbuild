@@ -1,0 +1,40 @@
+---
+# Generic hardware disk configuration
+
+root_vg_name:   '@@ROOT_DISK_VG_NAME@@'
+disk_size_root: '@@ROOT_DISK_SIZE@@'
+boot_type:      '@@BOOT_TYPE@@'
+
+volumes:
+  # boot
+  - name:     'boot'
+    size:     '@@BOOT_SIZE@@'
+    fstype:   'ext4'
+    fs_uuid:  '@@BOOT_UUID@@'
+
+  # EFI system partition (ESP),
+  # only needed for UEFI-type hardware
+  - name:     'esp'
+    size:     '@@ESP_SIZE@@'
+    fstype:   'vfat'
+    enabled:  @@ESP_ENABLED@@
+
+  # rootfs
+  - name:     'root'
+    size:     '@@ROOTFS_SIZE@@'
+    fstype:   '@@ROOTFS_FSTYPE@@'
+    fs_uuid:  '@@ROOTFS_UUID@@'
+
+  # swap (optional)
+  - name:     'swap'
+    size:     '@@SWAP_SIZE@@'
+    fstype:   'swap'
+    enabled:  @@SWAP_ENABLED@@
+
+  # log (optional)
+  - name:     'log'
+    size:     '@@LOG_SIZE@@'
+    fstype:   'ext4'
+    enabled:  @@LOG_ENABLED@@
+
+...

@@ -1,0 +1,4 @@
+The hardware collections create a tarball and a disk config file.
+
+You'll have to convert it to a disk image manually,
+e.g. by using build-scripts/convert-tar-to-disk.py

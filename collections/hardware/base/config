@@ -1,0 +1,49 @@
+# the hardware collection creates a custom disk image, tar not needed
+# FIXME TODO
+#DBUILD_TARGET_IMAGE_FORMAT='null'
+
+# System Configuration
+# --------------------
+
+# Hardware firmware type, usually bios or uefi
+# This should not be set to here,
+# but rather in a specific collection.
+OCONF_HW_BOOT_TYPE=''
+
+# whether /boot is on a separate filesystem
+# -- HARDCODED, OPTION NOT IMPLEMENTED --
+OFEAT_SEPARATE_BOOT=1
+
+# size of the disk containing the boot,
+# swap and rootfs LVM/PV partition(s)
+#
+# Note that this must be greater than or equal
+# to the size of all allocated logical volumes,
+# no checks will be performed to ensure that!
+OCONF_HW_ROOT_DISK_SIZE='10G'
+
+# name of the rootfs volume group
+# To avoid conflicts, use a name
+# that is not an active VG on the build host.
+OCONF_HW_ROOT_VG_NAME='vg0'
+
+# size of the UEFI ESP (if any)
+OCONF_HW_ESP_SIZE='100M'
+
+# size of the boot partition
+OCONF_HW_BOOT_SIZE='1G'
+
+# rootfs filesystem type
+# choose from: btrfs, ext4
+OCONF_ROOTFS_TYPE='btrfs'
+
+# size of the rootfs logical volume
+OCONF_HW_ROOTFS_SIZE='4G'
+
+# Whether to create a swap partition for the hardware disk image
+OFEAT_HW_SWAP=0
+OCONF_HW_SWAP_SIZE='1G'
+
+# Whether to create a separate logical volume for /var/log
+OFEAT_HW_LOG_LV=1
+OCONF_HW_LOG_LV_SIZE='1G'
