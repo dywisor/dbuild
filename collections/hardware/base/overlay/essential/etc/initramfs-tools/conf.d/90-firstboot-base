@@ -66,4 +66,3 @@ NFSROOT=auto
 # filesystem type
 #
 
-FSTYPE=btrfs
