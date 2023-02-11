@@ -1,0 +1,7 @@
+# System Configuration
+# --------------------
+
+# Boot firmware type, usually bios or uefi
+# This should not be set to here,
+# but rather in a specific collection.
+OCONF_BOOT_TYPE='bios'
