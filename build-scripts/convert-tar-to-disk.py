@@ -397,10 +397,21 @@ class DJ(object):
             check=False
         )
 
-        self.env.run_as_admin(
+        proc_umount = self.env.run_as_admin(
             ['umount', mnt_dir],
-            check=True
+            check=False
         )
+
+        if proc_umount.returncode != 0:
+            proc_check_mount = self.env.run_as_admin(
+                ['mountpoint', '-q', mnt_dir],
+                check=False
+            )
+
+            if proc_check_mount.returncode == 0:
+                raise RuntimeError(f'Failed to unmount {mnt_dir}')
+            # else assume already unmounted
+        # --
 
         self.opened_mount.pop(mnt_dir, None)
     # --- end of mount_close (...) ---
