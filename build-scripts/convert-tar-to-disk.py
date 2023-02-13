@@ -744,6 +744,8 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
             mnt_opts =  ['defaults', 'rw', 'relatime']
         # --
 
+        mnt_opts_snapshot = None
+
         if volume_config.fstype == FilesystemType.EXT4:
             fstype_str = 'ext4'
 
@@ -771,6 +773,7 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
             # --
 
             btrfs_subvol = ('@rootfs' if is_rootfs else '@')
+            btrfs_snapshots_subvol = '@snapshots'
 
             if mnt_opts_btrfs:
                 mnt_opts.extend(mnt_opts_btrfs)
@@ -792,7 +795,28 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
                 check=True
             )
 
+            # also create a @snapshots subvolume (can be used e.g. with snapper)
+            env.run_as_admin(
+                ['btrfs', 'subvolume', 'create', os.path.join(mp, btrfs_snapshots_subvol)],
+                check=True
+            )
+
+            env.run_as_admin(
+                ['chmod', '--', '0700', os.path.join(mp, btrfs_snapshots_subvol)],
+                check=True
+            )
+
+            # create snapshots mountpoint
+            #  NOTE: this will be removed when initializing snapper (if enabled)
+            env.run_as_admin(
+                ['mkdir', '-m', '0700', '--', os.path.join(mp, btrfs_subvol, '.snapshots')],
+                check=True
+            )
+
             dj.mount_close(mp)
+
+            # prepare mount opts for snapshot
+            mnt_opts_snapshot = list(mnt_opts) + [f'subvol={btrfs_snapshots_subvol}']
 
             # finally, append subvol to mount options
             mnt_opts.append(f'subvol={btrfs_subvol}')
@@ -844,6 +868,21 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
                 mnt_opts    = mnt_opts,
             )
             fstab_entries.append((volume_config, mnt_entry))
+
+            # btrfs: also create fstab entry for snapshots subvolume
+            # (but do not mount)
+            if volume_config.fstype == FilesystemType.BTRFS:
+                fstab_entries.append(
+                    (
+                        volume_config,
+                        dataclasses.replace(
+                            mnt_entry,
+                            mnt_dir  = os.path.join(mnt_entry.mnt_dir, '.snapshots'),
+                            mnt_opts = ','.join(mnt_opts_snapshot)
+                        )
+                    )
+                )
+            # --
         # --
     # --- end of init_fs (...) ---
 
