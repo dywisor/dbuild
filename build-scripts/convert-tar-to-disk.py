@@ -18,7 +18,7 @@ import sys
 import tempfile
 import uuid
 
-# import dataclasses
+import dataclasses
 from dataclasses import dataclass
 from typing import Optional
 
@@ -178,6 +178,7 @@ class SimpleDiskConfig:
     root_vg_name    : str
     disk_size_root  : str
     boot_type       : BootType
+    snapper         : bool
     volumes         : dict[str, VolumeConfig]
 # --- end of SimpleDiskConfig ---
 
@@ -534,6 +535,7 @@ def parse_disk_config(disk_config_data):
         root_vg_name   = dict_chain_get(disk_config_data, ['root_vg_name'], 'vg0'),
         disk_size_root = dict_chain_get(disk_config_data, ['disk_size_root'], '10G'),
         boot_type      = mkobj_boot_type(dict_chain_get(disk_config_data, ['boot_type'], 'bios')),
+        snapper        = mkobj_bool(disk_config_data.get('snapper'), True),
         volumes        = mkobj_volumes(dict_chain_get(disk_config_data, ['volumes'], None)),
     )
 
@@ -600,6 +602,7 @@ def get_default_disk_config_data(boot_type):
         'root_vg_name'      : 'vg0',
         'disk_size_root'    : '10G',
         'boot_type'         : boot_type.name,
+        'snapper'           : True,
         'volumes'           : [
             {
                 'name'      : 'boot',
@@ -1298,6 +1301,66 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
         else:
             raise NotImplementedError("install bootloader for boot type", disk_config.boot_type)
         # --
+
+        #> initialize snapper
+        if disk_config.snapper:
+            target_have_snapper = False
+            for search_dir in ['usr/bin', 'usr/sbin', 'bin', 'sbin']:
+                if os.path.lexists(os.path.join(mount_root, search_dir, 'snapper')):
+                    target_have_snapper = True
+                    break  # BREAK-LOOP find snapper
+                # -- end if
+            # -- end for
+
+            # NOTE/FIXME MAYBE: snapper gets automatically disabled if not found
+
+            if target_have_snapper:
+                for volume_name, snapper_config_name, mnt_dir_rel in [
+                    ('root', None, None),
+                ]:
+                    if snapper_config_name is None:
+                        snapper_config_name = volume_name
+
+                    mnt_dir_abs = (mount_root if mnt_dir_rel is None else (mount_root / mnt_dir_rel))
+                    snapshots_dir_abs = (mnt_dir_abs / '.snapshots')
+
+                    # skip non-existing and non-btrfs volumes
+                    volume_config = disk_config.volumes.get(volume_name, None)
+                    if volume_config and volume_config.fstype == FilesystemType.BTRFS:
+                        # snapper wants to create its own subvolume.
+                        # So, remove the existing .snapshots mountpoint
+                        # (not mounted here),let snapper create the subvolume
+                        # and then nuke it and recreate the mountpoint again.
+
+                        env.run_as_admin(
+                            ['rmdir', '--', snapshots_dir_abs],
+                            check=True
+                        )
+
+                        env.run_as_admin_chroot(
+                            mount_root,
+                            [
+                                'snapper', '--no-dbus',
+                                '-c', snapper_config_name,
+                                'create-config', '--fstype', 'btrfs',
+                                (f'/{mnt_dir_rel}' if mnt_dir_rel else '/')
+                            ],
+                            check=True
+                        )
+
+                        env.run_as_admin(
+                            ['btrfs', 'subvolume', 'delete', snapshots_dir_abs],
+                            check=True
+                        )
+
+                        env.run_as_admin(
+                            ['mkdir', '-m', '0700', '--', snapshots_dir_abs],
+                            check=True
+                        )
+                    # -- end if
+                # -- end for
+            # -- end if
+        # -- end if snapper feature enabled?
 
         #> optionally execute a chrooted shell
         if arg_config.exec_chroot:
