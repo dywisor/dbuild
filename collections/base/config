@@ -270,14 +270,26 @@ OFEAT_ETC_MACHINE_ID=0
 #   Disabled in the base configuration,
 #   should only be enabled in more specific collections.
 #
-#   If disabled (unset or set to 0),
-#   this will disable all OCONF_TMPFS_* mounts.
+#   If disabled (unset or set to 0), this will disable
+#   all tmpfs mounts for the following mountpoints:
+#
+#     - /dev/shm    [OS will still mount this as tmpfs]
+#     - /tmp
+#     - /var/tmp
+#     - /run        [OS will still mount this as tmpfs]
 #
 OFEAT_TMPFS_MOUNTS=0
 OCONF_TMPFS_DEV_SHM_SIZE='10%'
 OCONF_TMPFS_TMP_SIZE='20%'
 OCONF_TMPFS_VAR_TMP_SIZE='20%'
 OCONF_TMPFS_RUN_SIZE='10%'
+
+# Whether to use a tmpfs mount for /var/cache/apt
+#
+#   Disabled in the base configuration,
+#   should only be enabled in more specific collections.
+OFEAT_TMPFS_APT_CACHE=0
+OCONF_TMPFS_APT_CACHE_SIZE='50%'
 
 # Whether to configure custom kernel boot parameters
 #
