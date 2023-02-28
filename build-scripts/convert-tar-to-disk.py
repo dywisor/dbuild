@@ -628,6 +628,13 @@ def get_default_disk_config_data(boot_type):
                 'size'      : '1G',
                 'fstype'    : 'ext4',
             },
+
+            {
+                'name'      : 'apt',
+                'enabled'   : False,
+                'size'      : '4G',
+                'fstype'    : 'ext4',
+            },
         ],
     }
 
@@ -1122,6 +1129,22 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
 
             init_fs(
                 dj, fstab_entries, volume_config, blk_dev, 'var/log',
+                mnt_opts_base=['defaults', 'rw', 'noatime', 'nodev', 'noexec', 'nosuid']
+            )
+        # -- end if
+
+        ##> initialize apt cache LV (optional)
+        volume_config = disk_config.volumes.get('apt', None)
+        if volume_config and volume_config.enabled:
+            blk_dev = f'{root_vg}-log'
+
+            env.run_as_admin(
+                ['lvcreate', '-L', volume_config.size, '-n', 'apt', disk_config.root_vg_name],
+                check=True
+            )
+
+            init_fs(
+                dj, fstab_entries, volume_config, blk_dev, 'var/cache/apt',
                 mnt_opts_base=['defaults', 'rw', 'noatime', 'nodev', 'noexec', 'nosuid']
             )
         # -- end if
