@@ -47,3 +47,9 @@ OCONF_HW_SWAP_SIZE='1G'
 # Whether to create a separate logical volume for /var/log
 OFEAT_HW_LOG_LV=1
 OCONF_HW_LOG_LV_SIZE='1G'
+
+# Whether to create a separate logical volume for /var/cache/apt
+# Note: OFEAT_TMPFS_APT_CACHE must be disabled when enabling this option.
+# Note: Increase OCONF_HW_ROOT_DISK_SIZE when enabling this option.
+OFEAT_HW_APT_CACHE_LV=0
+OCONF_HW_APT_CACHE_LV_SIZE='4G'

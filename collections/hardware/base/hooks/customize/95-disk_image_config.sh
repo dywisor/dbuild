@@ -39,7 +39,10 @@ set -- \
     -e "s=@@SWAP_ENABLED@@=${OFEAT_HW_SWAP:?}=g" \
     \
     -e "s=@@LOG_SIZE@@=${OCONF_HW_LOG_LV_SIZE:?}=g" \
-    -e "s=@@LOG_ENABLED@@=${OFEAT_HW_LOG_LV:?}=g"
+    -e "s=@@LOG_ENABLED@@=${OFEAT_HW_LOG_LV:?}=g" \
+    \
+    -e "s=@@APT_CACHE_SIZE@@=${OCONF_HW_APT_CACHE_LV_SIZE:?}=g" \
+    -e "s=@@APT_CACHE_ENABLED@@=${OFEAT_HW_APT_CACHE_LV:?}=g"
 
 
 {
