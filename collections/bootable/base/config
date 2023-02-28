@@ -28,3 +28,4 @@ OCONF_KERNEL_IMAGE=linux-image-amd64
 
 # tmpfs mounts
 OFEAT_TMPFS_MOUNTS=1
+OFEAT_TMPFS_APT_CACHE=1
