@@ -455,6 +455,21 @@ def main_build_hooks(cfg):
 
 def main_build_mmdebstrap_opts(cfg):
     def update_pkg_list(pkg_list, items):
+        # item may be one of
+        #   +NAME:   add package NAME to list
+        #   -NAME:   remove package NAME from list
+        #            (may be added again in subsequent collections)
+        #    NAME:   add, same as +NAME
+
+        for item in items:
+            if item[0] == '+':
+                pkg_list.add(item[1:])
+            elif item[0] == '-':
+                pkg_list.discard(item[1:])
+            else:
+                pkg_list.add(item)
+        # --
+
         pkg_list.update(items)
     # --- end of update_pkg_list (...) ---
 
