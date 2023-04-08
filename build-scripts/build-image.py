@@ -454,6 +454,10 @@ def main_build_hooks(cfg):
 
 
 def main_build_mmdebstrap_opts(cfg):
+    def update_pkg_list(pkg_list, items):
+        pkg_list.update(items)
+    # --- end of update_pkg_list (...) ---
+
     # build mmdebstrap opts
     cfg.mm_argv = [
         '--mode=fakechroot',
@@ -465,13 +469,13 @@ def main_build_mmdebstrap_opts(cfg):
         '--hook-directory={}'.format(cfg.staging.hook_dir),
     ]
 
-    for bcol in cfg.build_collections.values():
-        pkg_list = set()
+    pkg_list = set()
 
+    for bcol in cfg.build_collections.values():
         # static package list
         try:
             pkg_list_file = bcol.root / 'package.list'
-            pkg_list.update(gen_read_list_file(pkg_list_file))
+            update_pkg_list(pkg_list, gen_read_list_file(pkg_list_file))
 
         except FileNotFoundError:
             pass
@@ -486,18 +490,21 @@ def main_build_mmdebstrap_opts(cfg):
                 capture_output=True
             )
 
-            pkg_list.update((
-                pkg
-                for l in proc.stdout.decode('ascii').splitlines()
-                for pkg in l.split()
-                if pkg
-            ))
+            update_pkg_list(
+                pkg_list,
+                (
+                    pkg
+                    for l in proc.stdout.decode('ascii').splitlines()
+                    for pkg in l.split()
+                    if pkg
+                )
+            )
         # -- end if
-
-        if pkg_list:
-            cfg.mm_argv.append('--include={}'.format(' '.join(sorted(pkg_list))))
-        # -- end try
     # -- end for
+
+    if pkg_list:
+        cfg.mm_argv.append('--include={}'.format(' '.join(sorted(pkg_list))))
+    # -- end try
 # --- end of main_build_mmdebstrap_opts (...) ---
 
 
