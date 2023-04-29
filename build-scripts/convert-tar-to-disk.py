@@ -202,6 +202,7 @@ class VolumeConfig:
 
 @dataclass
 class SimpleDiskConfig:
+    boot_raid       : MDADMConfig
     root_vg_name    : str
     root_vg_raid    : MDADMConfig
     root_vg_luks    : LUKSConfig
@@ -671,6 +672,7 @@ def parse_disk_config(disk_config_data):
     # --- end of mkobj_volumes (...) ---
 
     disk_config = SimpleDiskConfig(
+        boot_raid      = mkobj_mdadm_config(dict_chain_get(disk_config_data, ['boot_raid'], None)),
         root_vg_name   = dict_chain_get(disk_config_data, ['root_vg_name'], 'vg0'),
         root_vg_raid   = mkobj_mdadm_config(dict_chain_get(disk_config_data, ['root_vg_raid'], None)),
         root_vg_luks   = mkobj_luks_config(dict_chain_get(disk_config_data, ['root_vg_luks'], None)),
@@ -1308,6 +1310,27 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
         root_pv_part = f'{loop_dev_root}p{root_part_vg}'
         root_pv = root_pv_part
 
+        #> set boot dev path (may be overridden by storage layer setup)
+        if root_part_boot is None:
+            raise AssertionError("boot partition requested but not allocated")
+        # --
+
+        boot_dev = f'{loop_dev_root}p{root_part_boot}'
+
+        #> MDADM: raid1 for boot dev (optional)
+        # (single-disk raid1, should to be extended after deploying)
+        if disk_config.boot_raid.enabled:
+            boot_dev_mdadm = mdadm_init_raid1(
+                dj,
+                disk_config.boot_raid,
+                boot_dev
+            )
+
+            mdadm_devices[boot_dev_mdadm] = f'/dev/md/{disk_config.boot_raid.name}'
+
+            boot_dev = boot_dev_mdadm
+        # --
+
         #> MDADM: raid1 PV for VG on root disk (optional)
         # (single-disk raid1, should to be extended after deploying)
         if disk_config.root_vg_raid.enabled:
@@ -1362,15 +1385,11 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
         )
 
         ##> initialize boot partition/fs/mount
-        if root_part_boot is None:
-            raise AssertionError("boot partition requested but not allocated")
-        # --
-
         volume_config = disk_config.volumes['boot']
-        blk_dev = f'{loop_dev_root}p{root_part_boot}'
+        blk_dev = None  # unset previous blk_dev, using boot_dev instead
 
         init_fs(
-            dj, fstab_entries, volume_config, blk_dev, 'boot',
+            dj, fstab_entries, volume_config, boot_dev, 'boot',
             mnt_opts_base=['defaults', 'rw', 'noatime', 'nodev', 'nosuid']
         )
 
