@@ -652,6 +652,13 @@ def get_default_disk_config_data(boot_type):
 # --- end of get_default_disk_config_data (...) ---
 
 
+def get_default_disk_config(boot_type):
+    return parse_disk_config(
+        get_default_disk_config_data(boot_type)
+    )
+# --- end of get_default_disk_config (...) ---
+
+
 def main(prog, argv):
     env = RuntimeEnvironment()
     env.script_file_called  = pathlib.Path(os.path.abspath(__file__))
@@ -683,7 +690,7 @@ def main(prog, argv):
 
     else:
         # attr should be set
-        disk_config = get_default_disk_config_data(arg_config.default_disk_config)
+        disk_config = get_default_disk_config(arg_config.default_disk_config)
     # --
 
     return main_create_disk_image(
