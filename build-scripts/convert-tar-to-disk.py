@@ -781,7 +781,13 @@ def load_disk_config(filepath):
 
 def get_default_disk_config_data(boot_type):
     disk_config_data = {
+        'boot_raid'         : {
+            'enabled'       : False,
+        },
         'root_vg_name'      : 'vg0',
+        'root_vg_raid'      : {
+            'enabled'       : False,
+        },
         'root_vg_luks'      : {
             'enabled'       : False,
             'passphrase'    : 'install',
