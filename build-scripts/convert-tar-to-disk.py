@@ -163,6 +163,21 @@ class FilesystemType(enum.IntEnum):
 
 
 @dataclass
+class LUKSConfig:
+    enabled         : bool
+    enc_name        : str
+    enc_name_dbuild : str
+    luks_uuid       : str
+    passphrase      : str
+    luks_type       : str
+    hash_alg        : Optional[str]
+    cipher          : Optional[str]
+    key_size        : Optional[int]
+    integrity_alg   : Optional[str]
+# --- end of LUKSConfig ---
+
+
+@dataclass
 class VolumeConfig:
     enabled     : bool
     label       : str
@@ -176,6 +191,7 @@ class VolumeConfig:
 @dataclass
 class SimpleDiskConfig:
     root_vg_name    : str
+    root_vg_luks    : LUKSConfig
     disk_size_root  : str
     boot_type       : BootType
     snapper         : bool
@@ -245,6 +261,7 @@ class DJ(object):
         self.env = env
 
         self.opened_loop_dev = collections.OrderedDict()
+        self.opened_luks = collections.OrderedDict()
         self.opened_lvm_vg = collections.OrderedDict()
         self.opened_mount = collections.OrderedDict()
     # --- end of __init__ (...) ---
@@ -274,6 +291,14 @@ class DJ(object):
             except:
                 cleanup_errors.append(('vg', vg, sys.exc_info()))
         # -- end for vg
+
+        for enc_name in revlist(self.opened_luks):
+            try:
+                self.luks_close(enc_name)
+
+            except:
+                cleanup_errors.append(('luks', enc_name, sys.exc_info()))
+        # -- end for enc_name
 
         for loop_dev in revlist(self.opened_loop_dev):
             try:
@@ -322,6 +347,31 @@ class DJ(object):
 
         self.opened_loop_dev.pop(loop_dev, None)
     # --- end of loop_dev_close (...) ---
+
+    def luks_open(self, blk_dev, enc_name, passphrase):
+        self.env.run_as_admin(
+            [
+                'cryptsetup',
+                '--key-file', '-',      # read passphrase from stdin
+                'luksOpen',
+                blk_dev,
+                enc_name,
+            ],
+            input=passphrase.encode('utf-8'),
+            check=True
+        )
+
+        self.opened_luks[enc_name] = True
+    # --- end of luks_open (...) ---
+
+    def luks_close(self, enc_name):
+        self.env.run_as_admin(
+            ['cryptsetup', 'luksClose', enc_name],
+            check=True
+        )
+
+        self.opened_luks.pop(enc_name, None)
+    # --- end of luks_close (...) ---
 
     def lvm_vg_open(self, vg_name):
         self.env.run_as_admin(
@@ -495,6 +545,30 @@ def parse_disk_config(disk_config_data):
             return fs_uuid
     # --- end of mkobj_default_uuid (...) ---
 
+    def mkobj_luks_config(arg_luks):
+        if not arg_luks:
+            arg_luks = {}
+        # --
+
+        enc_name        = arg_luks.get('enc_name') or 'pv_root_crypt'
+        enc_name_dbuild = arg_luks.get('enc_name_dbuild') or f'dbuild_{enc_name}'
+        luks_type       = arg_luks.get('luks_type') or 'luks2'
+        luks_uuid       = arg_luks.get('luks_uuid') or mkobj_default_uuid()
+
+        return LUKSConfig(
+            enabled         = mkobj_bool(arg_luks.get('enabled'), True),
+            enc_name        = enc_name,
+            enc_name_dbuild = enc_name_dbuild,
+            luks_uuid       = luks_uuid,
+            passphrase      = arg_luks.get('passphrase', ''),
+            luks_type       = luks_type,
+            hash_alg        = arg_luks.get('hash', None),
+            cipher          = arg_luks.get('cipher', None),
+            key_size        = mkobj_int(arg_luks.get('key_size'), None),
+            integrity_alg   = arg_luks.get('integrity', None),
+        )
+    # --- end of mkobj_luks_config (...) ---
+
     def mkobj_volume_id(fstype, fs_uuid):
         if fstype == FilesystemType.VFAT:
             return ''.join((w.upper() for w in fs_uuid.split('-')))
@@ -540,6 +614,7 @@ def parse_disk_config(disk_config_data):
 
     disk_config = SimpleDiskConfig(
         root_vg_name   = dict_chain_get(disk_config_data, ['root_vg_name'], 'vg0'),
+        root_vg_luks   = mkobj_luks_config(dict_chain_get(disk_config_data, ['root_vg_luks'], None)),
         disk_size_root = dict_chain_get(disk_config_data, ['disk_size_root'], '10G'),
         boot_type      = mkobj_boot_type(dict_chain_get(disk_config_data, ['boot_type'], 'bios')),
         snapper        = mkobj_bool(disk_config_data.get('snapper'), True),
@@ -556,9 +631,32 @@ def parse_disk_config(disk_config_data):
     # (2) for UEFI:
     #     - must have an active 'ESP' volume
     #
+    # (3) for LUKS:
+    #     - must have a passphrase
+    #     - integrity_alg can only be set if LUKS type is 'luks2'
+
+    def mkobj_luks_config(arg_luks):
+        if arg_luks:
+            arg_luks = {}
+        # --
+
+        luks_type = arg_luks.get('luks_type') or 'luks2'
+        luks_uuid = arg_luks.get('luks_uuid') or mkobj_default_uuid()
+
+        return LUKSConfig(
+            enabled         = mkobj_bool(arg_luks.get('enabled'), True),
+            luks_uuid       = luks_uuid,
+            passphrase      = arg_luks.get('passphrase', ''),
+            luks_type       = luks_type,
+            hash_alg        = arg_luks.get('hash', None),
+            cipher          = arg_luks.get('cipher', None),
+            key_size        = mkobj_int(arg_luks.get('key_size'), None),
+            integrity_alg   = arg_luks.get('integrity', None),
+        )
+
+    errors = []
 
     missing_volumes = []
-
     for volume_name in ['root', 'boot']:
         if (
             (volume_name not in disk_config.volumes)
@@ -577,8 +675,24 @@ def parse_disk_config(disk_config_data):
         # --
     # --
 
+    if disk_config.root_vg_luks.enabled:
+        if not disk_config.root_vg_luks.passphrase:
+            errors.append('no LUKS passphrase set')
+
+        if (
+            disk_config.root_vg_luks.integrity_alg
+            and disk_config.root_vg_luks.luks_type not in {'luks2', }
+        ):
+            errors.append('integrity requires luks_type luks2')
+        # --
+    # --
+
     if missing_volumes:
-        raise ValueError('missing volumes in disk config', missing_volumes)
+        errors.append('missing volumes in disk config: {}'.format(', '.join(missing_volumes)))
+    # --
+
+    if errors:
+        raise ValueError('invalid disk config', errors)
     # --
 
     return disk_config
@@ -607,6 +721,10 @@ def load_disk_config(filepath):
 def get_default_disk_config_data(boot_type):
     disk_config_data = {
         'root_vg_name'      : 'vg0',
+        'root_vg_luks'      : {
+            'enabled'       : False,
+            'passphrase'    : 'install',
+        },
         'disk_size_root'    : '10G',
         'boot_type'         : boot_type.name,
         'snapper'           : True,
@@ -712,6 +830,38 @@ def main(prog, argv):
 
 
 def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, rootfs_tarball_filepath):
+    def luks_format(luks_config, blk_dev):
+        cmdv = [
+            'cryptsetup',
+            '--type', luks_config.luks_type,
+            '--uuid', luks_config.luks_uuid,
+            '--force-password',
+            '--key-file', '-',      # read from stdin
+        ]
+
+        for opt, value in [
+            ('--hash',      luks_config.hash_alg),
+            ('--cipher',    luks_config.cipher),
+            ('--key-size',  luks_config.key_size),
+            ('--integrity', luks_config.integrity_alg),
+        ]:
+            if value is not None:
+                cmdv.append(opt)
+                cmdv.append(value)
+            # --
+        # -- end for
+
+        # cryptsetup action and target
+        cmdv.extend(['luksFormat', blk_dev])
+
+        # passphrase via stdin (convert to bytes)
+        env.run_as_admin(
+            cmdv,
+            input=luks_config.passphrase.encode('utf-8'),
+            check=True
+        )
+    # --- end of luks_format (...) ---
+
     def mkfs_ext4(volume_config, blk_dev, error_behavior='continue'):
         env.run_as_admin(
             [
@@ -1065,8 +1215,24 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
         #> open disk image(s) as loop device
         loop_dev_root = dj.loop_dev_open(disk_img_root)
 
+        #> set root PV path (may be overridden by storage layer setup)
+        root_pv_part = f'{loop_dev_root}p{root_part_vg}'
+        root_pv = root_pv_part
+
+        #> LUKS: encrypt PV for VG on root disk (optional)
+        if disk_config.root_vg_luks.enabled:
+            luks_format(disk_config.root_vg_luks, root_pv)
+
+            dj.luks_open(
+                root_pv,
+                disk_config.root_vg_luks.enc_name_dbuild,
+                disk_config.root_vg_luks.passphrase,
+            )
+
+            root_pv = f'/dev/mapper/{disk_config.root_vg_luks.enc_name_dbuild}'
+        # --
+
         #> create VG on root disk
-        root_pv = f'{loop_dev_root}p{root_part_vg}'
         root_vg = f'/dev/mapper/{disk_config.root_vg_name}'
 
         env.run_as_admin(['pvcreate', root_pv], check=True)
@@ -1255,6 +1421,26 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
             mnt_type    = 'tmpfs',
             mnt_opts    = 'rw,mode=1777,nosuid,nodev,noexec',
         )
+
+        #> LUKS: create crypttab (optional)
+        if any((
+            luks_config.enabled
+            for luks_config in [
+                disk_config.root_vg_luks,
+            ]
+        )):
+            crypttab_lines = [
+                '{o.enc_name} UUID={o.luks_uuid} none luks,discard'.format(
+                    o=luks_config
+                )
+                for luks_config in [
+                    disk_config.root_vg_luks,
+                ]
+                if luks_config.enabled
+            ]
+
+            write_text_file((mount_root / 'etc/crypttab'), crypttab_lines)
+        # --
 
         #> rewrite fstab
         fstab_lines = [
