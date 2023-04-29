@@ -435,6 +435,13 @@ def parse_disk_config(disk_config_data):
         return (fallback if node is None else node)
     # --- end of dict_chain_get (...) ---
 
+    def mkobj_int(arg, fallback):
+        if arg is None:
+            return fallback
+        else:
+            return int(arg)
+    # --- end of mkobj_int (...) ---
+
     def mkobj_bool(arg, fallback):
         if arg is None:
             return fallback
