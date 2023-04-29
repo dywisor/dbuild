@@ -10,6 +10,7 @@ import abc
 import argparse
 import collections
 import enum
+import itertools
 import os
 import pathlib
 import shlex
@@ -163,6 +164,17 @@ class FilesystemType(enum.IntEnum):
 
 
 @dataclass
+class MDADMConfig:
+    enabled         : bool
+    mdadm_uuid      : str
+    name            : str
+    name_dbuild     : str
+    homehost        : Optional[str]
+    metadata        : Optional[str]
+# --- end of MDADMConfig ---
+
+
+@dataclass
 class LUKSConfig:
     enabled         : bool
     enc_name        : str
@@ -191,6 +203,7 @@ class VolumeConfig:
 @dataclass
 class SimpleDiskConfig:
     root_vg_name    : str
+    root_vg_raid    : MDADMConfig
     root_vg_luks    : LUKSConfig
     disk_size_root  : str
     boot_type       : BootType
@@ -262,6 +275,7 @@ class DJ(object):
 
         self.opened_loop_dev = collections.OrderedDict()
         self.opened_luks = collections.OrderedDict()
+        self.opened_mdadm = collections.OrderedDict()
         self.opened_lvm_vg = collections.OrderedDict()
         self.opened_mount = collections.OrderedDict()
     # --- end of __init__ (...) ---
@@ -299,6 +313,14 @@ class DJ(object):
             except:
                 cleanup_errors.append(('luks', enc_name, sys.exc_info()))
         # -- end for enc_name
+
+        for md_dev in revlist(self.opened_mdadm):
+            try:
+                self.mdadm_dev_close(md_dev)
+
+            except:
+                cleanup_errors.append(('md_dev', md_dev, sys.exc_info()))
+        # --- end for md_dev
 
         for loop_dev in revlist(self.opened_loop_dev):
             try:
@@ -347,6 +369,21 @@ class DJ(object):
 
         self.opened_loop_dev.pop(loop_dev, None)
     # --- end of loop_dev_close (...) ---
+
+    def mdadm_dev_register(self, md_dev):
+        # register an already started mdadm dev as opened
+        # (mdadm --create implicitly starts arrays)
+        self.opened_mdadm[md_dev] = True
+    # --- end of mdadm_dev_register (...) ---
+
+    def mdadm_dev_close(self, md_dev):
+        self.env.run_as_admin(
+            ['mdadm', '--stop', md_dev],
+            check=True
+        )
+
+        self.opened_mdadm.pop(md_dev, None)
+    # --- end of mdadm_dev_close (...) ---
 
     def luks_open(self, blk_dev, enc_name, passphrase):
         self.env.run_as_admin(
@@ -470,6 +507,8 @@ class DJ(object):
 # --- end of class DJ ---
 
 def parse_disk_config(disk_config_data):
+    mdadm_id_gen = itertools.count(0)
+
     def dict_chain_get(d, key_path, fallback):
         node = d
         for key in key_path:
@@ -545,6 +584,25 @@ def parse_disk_config(disk_config_data):
             return fs_uuid
     # --- end of mkobj_default_uuid (...) ---
 
+    def mkobj_mdadm_config(arg_mdadm):
+        if not arg_mdadm:
+            arg_mdadm = {}
+        # --
+
+        name        = arg_mdadm.get('name') or str(next(mdadm_id_gen))
+        name_dbuild = arg_mdadm.get('name_dbuild') or f'dbuild_{name}'
+        mdadm_uuid  = arg_mdadm.get('mdadm_uuid') or mkobj_default_uuid()
+
+        return MDADMConfig(
+            enabled         = mkobj_bool(arg_mdadm.get('enabled'), True),
+            mdadm_uuid      = mdadm_uuid,
+            name            = name,
+            name_dbuild     = name_dbuild,
+            homehost        = (arg_mdadm.get('homehost') or None),
+            metadata        = (arg_mdadm.get('metadata') or None),
+        )
+    # --- end of mkobj_mdadm_config (...) ---
+
     def mkobj_luks_config(arg_luks):
         if not arg_luks:
             arg_luks = {}
@@ -614,6 +672,7 @@ def parse_disk_config(disk_config_data):
 
     disk_config = SimpleDiskConfig(
         root_vg_name   = dict_chain_get(disk_config_data, ['root_vg_name'], 'vg0'),
+        root_vg_raid   = mkobj_mdadm_config(dict_chain_get(disk_config_data, ['root_vg_raid'], None)),
         root_vg_luks   = mkobj_luks_config(dict_chain_get(disk_config_data, ['root_vg_luks'], None)),
         disk_size_root = dict_chain_get(disk_config_data, ['disk_size_root'], '10G'),
         boot_type      = mkobj_boot_type(dict_chain_get(disk_config_data, ['boot_type'], 'bios')),
@@ -830,6 +889,34 @@ def main(prog, argv):
 
 
 def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, rootfs_tarball_filepath):
+
+    def mdadm_init_raid1(dj, mdadm_config, blk_dev):
+        md_dev = f'/dev/md/{mdadm_config.name_dbuild}'
+
+        cmdv = [
+            'mdadm', '--create', md_dev,
+            '--config=none',
+            '--auto=yes',
+            '--metadata={}'.format(mdadm_config.metadata or 'default'),
+            '--homehost={}'.format(mdadm_config.homehost or 'any'),
+            '--name={}'.format(mdadm_config.name),
+            '--uuid={}'.format(mdadm_config.mdadm_uuid),
+
+            '--level=raid1',
+            '--force',
+            '--raid-devices=1',
+            '--assume-clean',
+
+            blk_dev
+        ]
+
+        dj.mdadm_dev_register(md_dev)
+
+        env.run_as_admin(cmdv, check=True)
+
+        return md_dev
+    # --- end of mdadm_init_raid1 (...) ---
+
     def luks_format(luks_config, blk_dev):
         cmdv = [
             'cryptsetup',
@@ -1101,6 +1188,8 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
         # --
     # --- end of write_text_file (...) ---
 
+    # mdadm_devices : build-time dev => target dev
+    mdadm_devices = collections.OrderedDict()
     fstab_entries = []
 
     os.makedirs(outdir, exist_ok=True)
@@ -1218,6 +1307,21 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
         #> set root PV path (may be overridden by storage layer setup)
         root_pv_part = f'{loop_dev_root}p{root_part_vg}'
         root_pv = root_pv_part
+
+        #> MDADM: raid1 PV for VG on root disk (optional)
+        # (single-disk raid1, should to be extended after deploying)
+        if disk_config.root_vg_raid.enabled:
+            # mdadm_init_raid1() will also start the raid device
+            root_pv_mdadm = mdadm_init_raid1(
+                dj,
+                disk_config.root_vg_raid,
+                root_pv
+            )
+
+            mdadm_devices[root_pv_mdadm] = f'/dev/md/{disk_config.root_vg_raid.name}'
+
+            root_pv = root_pv_mdadm
+        # --- end if
 
         #> LUKS: encrypt PV for VG on root disk (optional)
         if disk_config.root_vg_luks.enabled:
@@ -1421,6 +1525,67 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
             mnt_type    = 'tmpfs',
             mnt_opts    = 'rw,mode=1777,nosuid,nodev,noexec',
         )
+
+        #> MDADM: create mdadm.conf
+        if mdadm_devices:   # at least one raid config is enabled
+            mdadm_config_dir  = mount_root / 'etc' / 'mdadm'
+            mdadm_config_file = mdadm_config_dir / 'mdadm.conf'
+
+            # default header/config
+            mdadm_config_lines = [
+                '# mdadm.conf',
+                '#',
+                '# !NB! Run update-initramfs -u after updating this file.',
+                '# !NB! This will ensure that initramfs has an uptodate copy.',
+                '#',
+                '# Please refer to mdadm.conf(5) for information about this file.',
+                '#',
+                '',
+                '# by default (built-in), scan all partitions (/proc/partitions) and all',
+                '# containers for MD superblocks. alternatively, specify devices to scan,'
+                '# using wildcards if desired.',
+                '#DEVICE partitions containers',
+                '',
+                '# automatically tag new arrays as belonging to the local system',
+                'HOMEHOST <system>',
+                '',
+                '# instruct the monitoring daemon where to send mail alerts',
+                'MAILADDR root',
+                '',
+                '# definitions of existing MD arrays',
+                '',
+            ]
+
+            # get details
+            proc = env.run_as_admin(
+                (['mdadm', '--detail', '--scan', '--config=none'] + list(mdadm_devices)),
+                check=True,
+                stdout=subprocess.PIPE
+            )
+
+            for mdadm_detail_line in proc.stdout.decode('utf-8').strip().splitlines():
+                mdadm_detail_fields = mdadm_detail_line.split()
+
+                if not mdadm_detail_fields:
+                    pass
+
+                elif mdadm_detail_fields[0] == 'ARRAY':
+                    # rewrite build-time dev to target dev
+                    build_time_dev = mdadm_detail_fields[1]
+                    target_dev = mdadm_devices[build_time_dev]
+
+                    mdadm_detail_fields[1] = target_dev
+                    mdadm_config_lines.append(' '.join(mdadm_detail_fields))
+
+                else:
+                    # pass-through
+                    mdadm_config_lines.append(mdadm_detail_line)
+                # -- end if
+            # -- end for
+
+            env.run_as_admin(['mkdir', '-p', mdadm_config_dir], check=True)
+            write_text_file((mdadm_config_file), mdadm_config_lines)
+        # -- end if write mdadm.conf
 
         #> LUKS: create crypttab (optional)
         if any((
