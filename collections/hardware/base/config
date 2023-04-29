@@ -53,3 +53,7 @@ OCONF_HW_LOG_LV_SIZE='1G'
 # Note: Increase OCONF_HW_ROOT_DISK_SIZE when enabling this option.
 OFEAT_HW_APT_CACHE_LV=0
 OCONF_HW_APT_CACHE_LV_SIZE='4G'
+
+# enable GRUB modules:
+# * lvm
+OFEAT_GRUB_INSMOD_LVM=1
