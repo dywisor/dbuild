@@ -604,12 +604,12 @@ def parse_disk_config(disk_config_data):
         )
     # --- end of mkobj_mdadm_config (...) ---
 
-    def mkobj_luks_config(arg_luks):
+    def mkobj_luks_config(arg_luks, default_name):
         if not arg_luks:
             arg_luks = {}
         # --
 
-        enc_name        = arg_luks.get('enc_name') or 'pv_root_crypt'
+        enc_name        = arg_luks.get('enc_name') or default_name
         enc_name_dbuild = arg_luks.get('enc_name_dbuild') or f'dbuild_{enc_name}'
         luks_type       = arg_luks.get('luks_type') or 'luks2'
         luks_uuid       = arg_luks.get('luks_uuid') or mkobj_default_uuid()
@@ -675,7 +675,7 @@ def parse_disk_config(disk_config_data):
         boot_raid      = mkobj_mdadm_config(dict_chain_get(disk_config_data, ['boot_raid'], None)),
         root_vg_name   = dict_chain_get(disk_config_data, ['root_vg_name'], 'vg0'),
         root_vg_raid   = mkobj_mdadm_config(dict_chain_get(disk_config_data, ['root_vg_raid'], None)),
-        root_vg_luks   = mkobj_luks_config(dict_chain_get(disk_config_data, ['root_vg_luks'], None)),
+        root_vg_luks   = mkobj_luks_config(dict_chain_get(disk_config_data, ['root_vg_luks'], None), 'root_pv_crypt'),
         disk_size_root = dict_chain_get(disk_config_data, ['disk_size_root'], '10G'),
         boot_type      = mkobj_boot_type(dict_chain_get(disk_config_data, ['boot_type'], 'bios')),
         snapper        = mkobj_bool(disk_config_data.get('snapper'), True),
