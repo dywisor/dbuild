@@ -38,7 +38,7 @@ volumes:
     enabled:  @@LOG_ENABLED@@
 
   # apt-cache (optional)
-  - name:     'apt-cache'
+  - name:     'apt'
     size:     '@@APT_CACHE_SIZE@@'
     fstype:   'ext4'
     enabled:  @@APT_CACHE_ENABLED@@
