@@ -481,10 +481,10 @@ def parse_disk_config(disk_config_data):
             raise ValueError('unsupported/invalid fstype', arg)
     # --- end of mkobj_fstype (...) ---
 
-    def mkobj_default_uuid(fstype):
+    def mkobj_default_uuid(fstype=None):
         fs_uuid = str(uuid.uuid4())
 
-        if fstype == FilesystemType.VFAT:
+        if fstype is not None and fstype == FilesystemType.VFAT:
             # FAT volume ID is a 32bit hex number
             # 3aad3da3-3971-47a6-b4e7-7910290fcfc7 -> {uuid: 3971-47A6, volume id: 397147A6}
             fs_uuid_parts = [w.upper() for w in fs_uuid.split('-', 3)[1:3]]
