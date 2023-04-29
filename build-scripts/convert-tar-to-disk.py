@@ -1154,7 +1154,7 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
             text = '\n'.join(text) + '\n'
         # --
 
-        # write to temporary file as user first, than install to dst
+        # write to temporary file as user first, then install to dst
         temp_outfile = None
 
         try:
