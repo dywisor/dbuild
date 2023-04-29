@@ -29,3 +29,9 @@ OCONF_KERNEL_IMAGE=linux-image-amd64
 # tmpfs mounts
 OFEAT_TMPFS_MOUNTS=1
 OFEAT_TMPFS_APT_CACHE=1
+
+# whether to load certain GRUB modules
+# * lvm
+# * mdraid1x
+OFEAT_GRUB_INSMOD_LVM=0
+OFEAT_GRUB_INSMOD_MDADM_RAID1=0

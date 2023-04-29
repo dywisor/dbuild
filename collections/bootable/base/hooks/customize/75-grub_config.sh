@@ -35,6 +35,16 @@ case "${OCONF_BOOT_TYPE-}" in
     ;;
 esac
 
+#> grub insmod: lvm
+if feat_all "${OFEAT_GRUB_INSMOD_LVM:-0}"; then
+    grub_insmod_list="${grub_insmod_list} lvm"
+fi
+
+#> grub insmod: mdadm raid1
+if feat_all "${OFEAT_GRUB_INSMOD_MDADM_RAID1:-0}"; then
+    grub_insmod_list="${grub_insmod_list} mdraid1x"
+fi
+
 #> grub insmod: fstype for loading files from /boot
 # NOTE/FIXME: boot fstype is hardcoded to ext4 (-> insmod ext2)
 grub_insmod_list="${grub_insmod_list} ext2"
