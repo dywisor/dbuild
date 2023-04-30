@@ -138,3 +138,76 @@ and see ``collections/base/config`` for a list of possible config options.
 Customizations and package selections are organized in a modular fashion,
 as so-called *collections*. You can add your own below ``collections/local/``,
 which will be ignored by git.
+
+
+Building Hardware Images
+------------------------------------------------------------------------
+
+Building hardware images is split into two stages:
+
+#. Create a tarball containing the rootfs
+
+#. Initialize a disk image with the configured storage layers
+   and then unpack the rootfs tarball into it
+
+The first stage is handled by ``mkimage``,
+``convert-tar-to-disk`` takes care of stage 2.
+
+The ``convert-tar-to-disk`` script requires root privileges
+acquired via ``sudo(8)`` for setting up the disk image
+and its various storage layers, as well as chrooting
+into the target rootfs for final customizations.
+You might want to consider running the build process
+in a dedicated container or virtual machine.
+
+The rootfs tarball and a configuration file
+defining the desired disk/storage layout must be given as input.
+The configuration file is usually created during stage 1,
+see ``collections/hardware/base/files/tar-to-disk.yml.in`` for a template file
+which contains the most common options.
+For all possible configuration options,
+have a look at the script itself (``class SimpleDiskConfig`` and its components).
+
+This output disk image will be a single file
+that can be written to a drive from which the target will boot.
+It contains the following volumes:
+
+- EFI system partition -- UEFI boot only
+
+- separate /boot partition, ext4-formatted,
+  *optionally* on top of RAID1
+
+- *optional*: swap partition
+
+- LVM volume group containing all remaining volumes,
+  *optionally* on top of LUKS and/or RAID1
+
+  - rootfs, btrfs-formatted by default
+
+    - *optional*: initialize snapper -- btrfs-based rootfs only
+
+  - *optional*: ``/var/log``, ext4-formatted by default
+
+  - *optional*: ``/var/cache/apt``, ext4-formatted by default
+
+LUKS-based encryption will use a passphrase set in the configuration file.
+This should be understood as an **intermediate passphrase
+that must be changed** after deploying the disk image
+to the target using ``cryptsetup luksChangeKey``.
+
+RAID1 will provide no redundancy, initially.
+This has to be added after deploying the disk image
+to the target using ``mdadm --grow``.
+
+
+To create the disk image file, create the rootfs tarball first:
+
+```
+./mkimage ./profiles/<PROFILE>
+```
+
+Then, run ``convert-tar-to-disk``:
+
+```
+./build-scripts/convert-tar-to-disk.py -C <config> -O <output_dir> <rootfs_tarball>
+```
