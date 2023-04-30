@@ -590,7 +590,10 @@ def parse_disk_config(disk_config_data):
             arg_mdadm = {}
         # --
 
-        name        = arg_mdadm.get('name') or str(next(mdadm_id_gen))
+        # always get an id for the array, even if not using it as name
+        mdadm_id    = next(mdadm_id_gen)
+
+        name        = arg_mdadm.get('name') or str(mdadm_id)
         name_dbuild = arg_mdadm.get('name_dbuild') or f'dbuild_{name}'
         mdadm_uuid  = arg_mdadm.get('mdadm_uuid') or mkobj_default_uuid()
 
