@@ -5,6 +5,16 @@ root_vg_name:   '@@ROOT_DISK_VG_NAME@@'
 disk_size_root: '@@ROOT_DISK_SIZE@@'
 boot_type:      '@@BOOT_TYPE@@'
 
+boot_raid:
+  enabled:      @@BOOT_RAID_ENABLED@@
+
+root_vg_raid:
+  enabled:      @@ROOT_RAID_ENABLED@@
+
+root_vg_luks:
+  enabled:      @@ROOT_LUKS_ENABLED@@
+  passphrase:   '@@ROOT_LUKS_PASSPHRASE@@'
+
 volumes:
   # boot
   - name:     'boot'

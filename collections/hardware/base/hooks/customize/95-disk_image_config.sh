@@ -25,6 +25,11 @@ set -- \
     -e "s=@@ROOT_DISK_SIZE@@=${OCONF_HW_ROOT_DISK_SIZE:?}=g" \
     -e "s=@@BOOT_TYPE@@=${OCONF_HW_BOOT_TYPE:?}=g" \
     \
+    -e "s=@@BOOT_RAID_ENABLED@@=${OFEAT_HW_BOOT_RAID1:?}=g" \
+    -e "s=@@ROOT_RAID_ENABLED@@=${OFEAT_HW_ROOT_VG_RAID1:?}=g" \
+    -e "s=@@ROOT_LUKS_ENABLED@@=${OFEAT_HW_ROOT_VG_LUKS:?}=g" \
+    -e "s=@@ROOT_LUKS_PASSPHRASE@@=${OCONF_HW_ROOT_VG_LUKS_PASSPHRASE:?}=g" \
+    \
     -e "s=@@BOOT_SIZE@@=${OCONF_HW_BOOT_SIZE:?}=g" \
     -e "s=@@BOOT_UUID@@=${boot_uuid:?}=g" \
     \

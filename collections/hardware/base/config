@@ -54,6 +54,30 @@ OCONF_HW_LOG_LV_SIZE='1G'
 OFEAT_HW_APT_CACHE_LV=0
 OCONF_HW_APT_CACHE_LV_SIZE='4G'
 
+# Whether to create a mdadm raid1 for /boot
+# This will be a single-disk raid1
+# providing no redundancy at all,
+# but it can be extended to a two-disk raid1 once deployed.
+OFEAT_HW_BOOT_RAID1=0
+
+# Whether to create a mdadm raid1 for the rootfs volume group
+# This will be a single-disk raid1
+# providing no redundancy at all,
+# but it can be extended to a two-disk raid1 once deployed.
+OFEAT_HW_ROOT_VG_RAID1=0
+
+# Whether to encrypt the rootfs volume group with LUKS
+# If OFEAT_HW_ROOT_VG_RAID1 is also enabled,
+# the encryption will be placed on top of the raid.
+#
+# You will need to set a passphrase here.
+# This should be an intermediate passphrase
+# that gets changed on the target once deployed.
+OFEAT_HW_ROOT_VG_LUKS=0
+OCONF_HW_ROOT_VG_LUKS_PASSPHRASE='install'
+
 # enable GRUB modules:
 # * lvm
+# * mdraid1x
 OFEAT_GRUB_INSMOD_LVM=1
+OFEAT_GRUB_INSMOD_MDADM_RAID1=1
