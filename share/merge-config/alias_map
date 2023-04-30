@@ -1,2 +1,3 @@
 # alias map for renaming deprecated config option
 # format: old_varname=new_varname
+OCONF_HW_BOOT_TYPE=OCONF_BOOT_TYPE

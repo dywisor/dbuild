@@ -8,7 +8,7 @@
 # Hardware firmware type, usually bios or uefi
 # This should not be set to here,
 # but rather in a specific collection.
-OCONF_HW_BOOT_TYPE=''
+#OCONF_BOOT_TYPE=''
 
 # whether /boot is on a separate filesystem
 # -- HARDCODED, OPTION NOT IMPLEMENTED --

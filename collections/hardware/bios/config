@@ -2,4 +2,4 @@
 # --------------------
 
 # Hardware firmware type, usually bios or uefi
-OCONF_HW_BOOT_TYPE='bios'
+OCONF_BOOT_TYPE='bios'
