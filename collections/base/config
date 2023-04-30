@@ -114,8 +114,8 @@ OCONF_LOGIN_USER_PASSWORD*=''
 #
 #  If unset, the login user may still login via SSH using password auth.
 #
-#OCONF_INSTALL_LOGIN_USER_SSH_PUB_KEY='ssh-rsa ...'
-OCONF_INSTALL_LOGIN_USER_SSH_PUB_KEY*=''
+#OCONF_LOGIN_SSH_KEY='ssh-rsa ...'
+OCONF_LOGIN_SSH_KEY*=
 
 # unprivileged user
 #

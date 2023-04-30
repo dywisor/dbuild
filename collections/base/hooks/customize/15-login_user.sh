@@ -57,6 +57,6 @@ EOF
         autodie dofile \
             "${TARGET_ROOTFS:?}/etc/ssh/authorized_keys/${OCONF_LOGIN_USER:?}" \
             0640 "0:${OCONF_LOGIN_UID}" \
-            printf '%s\n' "${OCONF_INSTALL_LOGIN_USER_SSH_PUB_KEY-}"
+            printf '%s\n' "${OCONF_LOGIN_SSH_KEY-}"
     fi
 fi
