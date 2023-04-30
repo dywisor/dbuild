@@ -15,20 +15,26 @@
 # -----------------
 
 # Proxy URL to be used during mmdebstrap
-#DBUILD_APT_PROXY='http://localhost:3142'
-DBUILD_APT_PROXY=''
+#DBUILD_APT_PROXY*='http://localhost:3142'
+DBUILD_APT_PROXY*=''
 
 # Base path for temporary files and directories
 #
 #  If empty, the staging root directory will be used.
 #
-DBUILD_TMPDIR_ROOT=''
+DBUILD_TMPDIR_ROOT*=''
 
-DBUILD_TARGET_ARCH='amd64'
-DBUILD_TARGET_CODENAME='bullseye'
-DBUILD_TARGET_COMPONENTS='main'
+DBUILD_TARGET_ARCH*='amd64'
+DBUILD_TARGET_CODENAME*='bullseye'
+DBUILD_TARGET_COMPONENTS*='main'
 
-DBUILD_TARGET_VARIANT='apt'
+DBUILD_TARGET_VARIANT*='apt'
+
+# Profile name
+#   Should be left empty, gets automatically set by mkimage.
+#
+DBUILD_PROFILE_NAME*=''
+
 
 # List of collections to use
 #
@@ -40,7 +46,7 @@ DBUILD_TARGET_VARIANT='apt'
 #
 #   Must not be empty - should be set in the profile config.
 #
-DBUILD_TARGET_COLLECTIONS=''
+DBUILD_TARGET_COLLECTIONS*=''
 
 # Init system used by the target,
 # typically either systemd or sysvinit
@@ -50,7 +56,7 @@ DBUILD_TARGET_COLLECTIONS=''
 #   which also provides necessary shell helpers,
 #   e.g. for enable services. 
 #
-DBUILD_TARGET_INIT_SYSTEM='unknown'
+DBUILD_TARGET_INIT_SYSTEM*='unknown'
 
 # Output image format
 #
@@ -61,7 +67,7 @@ DBUILD_TARGET_INIT_SYSTEM='unknown'
 #
 # Defaults to 'tar'.
 #
-DBUILD_TARGET_IMAGE_FORMAT='tar'
+DBUILD_TARGET_IMAGE_FORMAT*='tar'
 
 
 # User Accounts
@@ -79,7 +85,7 @@ DBUILD_TARGET_IMAGE_FORMAT='tar'
 # Password for root
 #   This may be a plain password or a hash (starting with '$').
 #   Password beginning with a literal '$' must be provided in hashed form.
-OCONF_INSTALL_ROOT_PASSWORD=''
+OCONF_INSTALL_ROOT_PASSWORD*=''
 
 # login user (REQUIRED)
 #
@@ -90,25 +96,26 @@ OCONF_INSTALL_ROOT_PASSWORD=''
 #  SSH access can be disabled by setting OFEAT_LOGIN_USER_SSH=0
 #  and fine-tuned via OFEAT_LOGIN_USER_SSH_<access_group>=0|1.
 #
-OFEAT_LOGIN_USER=1
-OFEAT_LOGIN_USER_RAMDISK=0
-OCONF_LOGIN_USER_RAMDISK_SIZE=1
-OFEAT_LOGIN_USER_SSH=1
-OFEAT_LOGIN_USER_SSH_SHELL=1
-OFEAT_LOGIN_USER_SSH_FORWARDING=0
-OCONF_LOGIN_USER='cosmo'
-OCONF_LOGIN_UID='1000'
+OFEAT_LOGIN_USER*=1
+OFEAT_LOGIN_USER_RAMDISK*=0
+OCONF_LOGIN_USER_RAMDISK_SIZE*=1
+OFEAT_LOGIN_USER_SSH*=1
+OFEAT_LOGIN_USER_SSH_SHELL*=1
+OFEAT_LOGIN_USER_SSH_FORWARDING*=0
+OCONF_LOGIN_USER*='cosmo'
+OCONF_LOGIN_UID*='1000'
 
 # Password for the login user
 #   This may be a plain password or a hash (starting with '$').
 #   Password beginning with a literal '$' must be provided in hashed form.
-OCONF_LOGIN_USER_PASSWORD=''
+OCONF_LOGIN_USER_PASSWORD*=''
 
 # SSH public key for the login user
 #
 #  If unset, the login user may still login via SSH using password auth.
 #
 #OCONF_INSTALL_LOGIN_USER_SSH_PUB_KEY='ssh-rsa ...'
+OCONF_INSTALL_LOGIN_USER_SSH_PUB_KEY*=''
 
 # unprivileged user
 #
@@ -118,9 +125,9 @@ OCONF_LOGIN_USER_PASSWORD=''
 #
 #   Can be disabled by setting the user name to the empty string.
 #
-OFEAT_UNPRIV_USER=1
-OCONF_UNPRIV_USER='wanda'
-OCONF_UNPRIV_UID='1001'
+OFEAT_UNPRIV_USER*=1
+OCONF_UNPRIV_USER*='wanda'
+OCONF_UNPRIV_UID*='1001'
 
 # control user
 #  You may optionally configure a user for automated control purposes
@@ -141,16 +148,16 @@ OCONF_UNPRIV_UID='1001'
 #    - OFEAT_CTRL_USER_SSH defaults to 1
 #      (capped by OFEAT_CTRL_USER)
 #
-OFEAT_CTRL_USER=0
-OFEAT_CTRL_USER_RAMDISK=1
-OCONF_CTRL_USER_RAMDISK_SIZE=50
-OCONF_CTRL_USER='ctrl'
-OCONF_CTRL_UID='999'
-OFEAT_CTRL_USER_SSH=1
-OFEAT_CTRL_USER_SSH_SHELL=1
-OFEAT_CTRL_USER_SSH_FORWARDING=0
-OCONF_CTRL_SSH_KEY=''
-#OCONF_CTRL_SSH_FROM='' ## NOT_IMPLEMENTED
+OFEAT_CTRL_USER*=0
+OFEAT_CTRL_USER_RAMDISK*=1
+OCONF_CTRL_USER_RAMDISK_SIZE*=50
+OCONF_CTRL_USER*='ctrl'
+OCONF_CTRL_UID*='999'
+OFEAT_CTRL_USER_SSH*=1
+OFEAT_CTRL_USER_SSH_SHELL*=1
+OFEAT_CTRL_USER_SSH_FORWARDING*=0
+OCONF_CTRL_SSH_KEY*=''
+#OCONF_CTRL_SSH_FROM*='' ## NOT_IMPLEMENTED
 
 # SSH Server
 # ----------
@@ -178,46 +185,46 @@ OCONF_CTRL_SSH_KEY=''
 #     - unpriv (OCONF_UNPRIV_USER) : no access [not configurable]
 #     - root   (<system user>)     : no access [not configurable]
 #
-OFEAT_SSHD_CONFIG=1
+OFEAT_SSHD_CONFIG*=1
 
 # SSH access group names and their ids, mandatory
 #
 #  An error is raised if a group is missing but its gid is already taken.
 #  If a group with that name does already exist, its gid will remain unchanged.
 #
-OCONF_SSHD_GROUP_LOGIN="ssh-login"
-OCONF_SSHD_GID_LOGIN="900"
+OCONF_SSHD_GROUP_LOGIN*="ssh-login"
+OCONF_SSHD_GID_LOGIN*="900"
 
-OCONF_SSHD_GROUP_SHELL="ssh-shell"
-OCONF_SSHD_GID_SHELL="901"
+OCONF_SSHD_GROUP_SHELL*="ssh-shell"
+OCONF_SSHD_GID_SHELL*="901"
 
-OCONF_SSHD_GROUP_FORWARDING="ssh-forwarding"
-OCONF_SSHD_GID_FORWARDING="902"
+OCONF_SSHD_GROUP_FORWARDING*="ssh-forwarding"
+OCONF_SSHD_GID_FORWARDING*="902"
 
 # Packages Installation
 # ---------------------
 
 # feature: Whether to install packages listed in OCONF_PKG_INSTALL on first boot
-OFEAT_PKG_INSTALL=1
+OFEAT_PKG_INSTALL*=1
 
 # List of packages to be installed
-OCONF_PKG_INSTALL=""
+OCONF_PKG_INSTALL*=""
 
 # feature: install 
-OFEAT_ANSIBLE_CTRL=0
+OFEAT_ANSIBLE_CTRL*=0
 
 # System Configuration
 # --------------------
 
 # Hostname
-OCONF_HOSTNAME='staging'
+OCONF_HOSTNAME*='staging'
 
 # Keyboard Layout
 #
 #   Examples: us
 #
 #  TODO/NOTE: NOT IMPLEMENTED
-OCONF_KBD_LAYOUT=''
+OCONF_KBD_LAYOUT*=''
 
 # Timezone
 #
@@ -225,45 +232,45 @@ OCONF_KBD_LAYOUT=''
 #   as present in /usr/share/zoneinfo/,  e.g. 'UTC' or 'Europe/Berlin'.
 #   FIXME: must be <region>/<name>, not UTC
 #
-OCONF_TIMEZONE='Europe/Berlin'
+OCONF_TIMEZONE*='Europe/Berlin'
 
 # Downsize the target rootfs by excluding non-essential files
 #
-OFEAT_ROOTFS_MINIMAL=0
-OFEAT_ROOTFS_MINIMAL_USR_SHARE=0
+OFEAT_ROOTFS_MINIMAL*=0
+OFEAT_ROOTFS_MINIMAL_USR_SHARE*=0
 
 # Whether to install man pages
 #
 #   This is usually a good idea..
 #
-OFEAT_MAN_PAGES=0
+OFEAT_MAN_PAGES*=0
 
 # Whether to install the cron daemon
 #
 #   Not strictly necessary (especially when using systemd timers), but it's
 #   unknown to me how much Debian relies on it on for normal operation.
 #
-OFEAT_CRON=1
+OFEAT_CRON*=1
 
 # Whether to install rsyslog
 #
 #   By default, no syslog daemon is installed.
 #   For systemd hosts, only a volatile journal will be configured.
 #
-OFEAT_RSYSLOG=0
+OFEAT_RSYSLOG*=0
 
 # Whether to install haveged for extra entropy
 #
 #   This is mostly useful for virtual machines
 #   when gpg, ... hangs due to low entropy.
 #
-OFEAT_HAVEGED=0
+OFEAT_HAVEGED*=0
 
 # Whether to create an empty /etc/machine-id file
 #
 #   If unset, /etc/machine-id will be deleted.
 #
-OFEAT_ETC_MACHINE_ID=0
+OFEAT_ETC_MACHINE_ID*=0
 
 # Whether to enable various tmpfs mounts
 #
@@ -278,26 +285,26 @@ OFEAT_ETC_MACHINE_ID=0
 #     - /var/tmp
 #     - /run        [OS will still mount this as tmpfs]
 #
-OFEAT_TMPFS_MOUNTS=0
-OCONF_TMPFS_DEV_SHM_SIZE='10%'
-OCONF_TMPFS_TMP_SIZE='20%'
-OCONF_TMPFS_VAR_TMP_SIZE='20%'
-OCONF_TMPFS_RUN_SIZE='10%'
+OFEAT_TMPFS_MOUNTS*=0
+OCONF_TMPFS_DEV_SHM_SIZE*='10%'
+OCONF_TMPFS_TMP_SIZE*='20%'
+OCONF_TMPFS_VAR_TMP_SIZE*='20%'
+OCONF_TMPFS_RUN_SIZE*='10%'
 
 # Whether to use a tmpfs mount for /var/cache/apt
 #
 #   Disabled in the base configuration,
 #   should only be enabled in more specific collections.
-OFEAT_TMPFS_APT_CACHE=0
-OCONF_TMPFS_APT_CACHE_SIZE='50%'
+OFEAT_TMPFS_APT_CACHE*=0
+OCONF_TMPFS_APT_CACHE_SIZE*='50%'
 
 # Whether to configure custom kernel boot parameters
 #
 #   This is a value-merged variable,
 #   (re)setting it will extend its original value.
 #
-OFEAT_BOOT_CMDLINE=0
-OCONF_BOOT_CMDLINE=''
+OFEAT_BOOT_CMDLINE*=0
+OCONF_BOOT_CMDLINE*=''
 
 # Whether to install a kernel image
 #
@@ -308,14 +315,14 @@ OCONF_BOOT_CMDLINE=''
 #        that requires a kernel image depending on the target.
 #        (Containers don't their own kernel, VMs do.)
 #
-OFEAT_KERNEL_IMAGE=0
-OCONF_KERNEL_IMAGE=
+OFEAT_KERNEL_IMAGE*=0
+OCONF_KERNEL_IMAGE*=
 
 # Whether to include support for signed UEFI booting (bootloader/kernel)
 #
 #  NOTE: This feature is not implemented in the base collection.
 #        Include the bootloader/kernel collection to enable it, e.g. vm/uefi.
-OFEAT_UEFI_SECURE_BOOT=0
+OFEAT_UEFI_SECURE_BOOT*=0
 
 
 # Network Configuration
@@ -329,13 +336,13 @@ OFEAT_UEFI_SECURE_BOOT=0
 #     https://wiki.debian.org/NetworkInterfaceNames
 #     https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/
 #
-OFEAT_IFNAMES=1
+OFEAT_IFNAMES*=1
 
 # Whether to generate /etc/resolv.conf
 #
 #   Note that disabling this will remove /etc/resolv.conf
 #
-OFEAT_RESOLV_CONF=1
+OFEAT_RESOLV_CONF*=1
 
 # List of nameservers for /etc/resolv.conf
 # (if OFEAT_RESOLV_CONF is set to 1)
@@ -343,11 +350,11 @@ OFEAT_RESOLV_CONF=1
 #   Must not be empty when OFEAT_RESOLV_CONF is enabled.
 #   The setting below uses the servers from OpenDNS.
 #
-OCONF_RESOLV_CONF_NS='208.67.222.222 208.67.220.220'
+OCONF_RESOLV_CONF_NS*='208.67.222.222 208.67.220.220'
 
 # List of search domains for /etc/resolv.conf
 # (if OFEAT_RESOLV_CONF is set to 1)
-OCONF_RESOLV_CONF_SEARCH=''
+OCONF_RESOLV_CONF_SEARCH*=''
 
 # Automatically configure network interfaces on boot? (DHCP/SLAAC)
 #
@@ -366,5 +373,5 @@ OCONF_RESOLV_CONF_SEARCH=''
 #  NOTE: auto configuration may override other DNS or NTP configuration
 #        (OFEAT_RESOLV_CONF, ...)
 #
-OFEAT_NETCONFIG_DHCP=0
-OCONF_NETCONFIG_DHCP_IFACE='eth0'
+OFEAT_NETCONFIG_DHCP*=0
+OCONF_NETCONFIG_DHCP_IFACE*='eth0'

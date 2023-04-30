@@ -12,9 +12,9 @@
 #     13 -> ESXi 6.5
 #     11 -> ESXi 6.0
 #
-OCONF_VM_ESXI_HW_VERSION='13'
+OCONF_VM_ESXI_HW_VERSION*='13'
 
 # virtual machine OS type
 #   mostly irrelevant.
 #   'debian11-64' requires ESXi 7.0 or later.
-OCONF_VM_ESXI_OS_TYPE='debian10-64'
+OCONF_VM_ESXI_OS_TYPE*='debian10-64'

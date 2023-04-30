@@ -20,51 +20,51 @@ OFEAT_SEPARATE_BOOT=1
 # Note that this must be greater than or equal
 # to the size of all allocated logical volumes,
 # no checks will be performed to ensure that!
-OCONF_HW_ROOT_DISK_SIZE='10G'
+OCONF_HW_ROOT_DISK_SIZE*='10G'
 
 # name of the rootfs volume group
 # To avoid conflicts, use a name
 # that is not an active VG on the build host.
-OCONF_HW_ROOT_VG_NAME='vg0'
+OCONF_HW_ROOT_VG_NAME*='vg0'
 
 # size of the UEFI ESP (if any)
-OCONF_HW_ESP_SIZE='100M'
+OCONF_HW_ESP_SIZE*='100M'
 
 # size of the boot partition
-OCONF_HW_BOOT_SIZE='1G'
+OCONF_HW_BOOT_SIZE*='1G'
 
 # rootfs filesystem type
 # choose from: btrfs, ext4
 OCONF_ROOTFS_TYPE='btrfs'
 
 # size of the rootfs logical volume
-OCONF_HW_ROOTFS_SIZE='4G'
+OCONF_HW_ROOTFS_SIZE*='4G'
 
 # Whether to create a swap partition for the hardware disk image
-OFEAT_HW_SWAP=0
-OCONF_HW_SWAP_SIZE='1G'
+OFEAT_HW_SWAP*=0
+OCONF_HW_SWAP_SIZE*='1G'
 
 # Whether to create a separate logical volume for /var/log
-OFEAT_HW_LOG_LV=1
-OCONF_HW_LOG_LV_SIZE='1G'
+OFEAT_HW_LOG_LV*=1
+OCONF_HW_LOG_LV_SIZE*='1G'
 
 # Whether to create a separate logical volume for /var/cache/apt
 # Note: OFEAT_TMPFS_APT_CACHE must be disabled when enabling this option.
 # Note: Increase OCONF_HW_ROOT_DISK_SIZE when enabling this option.
-OFEAT_HW_APT_CACHE_LV=0
-OCONF_HW_APT_CACHE_LV_SIZE='4G'
+OFEAT_HW_APT_CACHE_LV*=0
+OCONF_HW_APT_CACHE_LV_SIZE*='4G'
 
 # Whether to create a mdadm raid1 for /boot
 # This will be a single-disk raid1
 # providing no redundancy at all,
 # but it can be extended to a two-disk raid1 once deployed.
-OFEAT_HW_BOOT_RAID1=0
+OFEAT_HW_BOOT_RAID1*=0
 
 # Whether to create a mdadm raid1 for the rootfs volume group
 # This will be a single-disk raid1
 # providing no redundancy at all,
 # but it can be extended to a two-disk raid1 once deployed.
-OFEAT_HW_ROOT_VG_RAID1=0
+OFEAT_HW_ROOT_VG_RAID1*=0
 
 # Whether to encrypt the rootfs volume group with LUKS
 # If OFEAT_HW_ROOT_VG_RAID1 is also enabled,
@@ -73,8 +73,8 @@ OFEAT_HW_ROOT_VG_RAID1=0
 # You will need to set a passphrase here.
 # This should be an intermediate passphrase
 # that gets changed on the target once deployed.
-OFEAT_HW_ROOT_VG_LUKS=0
-OCONF_HW_ROOT_VG_LUKS_PASSPHRASE='install'
+OFEAT_HW_ROOT_VG_LUKS*=0
+OCONF_HW_ROOT_VG_LUKS_PASSPHRASE*='install'
 
 # enable GRUB modules:
 # * lvm

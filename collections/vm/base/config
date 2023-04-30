@@ -9,11 +9,11 @@ OFEAT_IFNAMES=0
 # --------------------
 
 # Whether to create a swap drive for the VM image
-OFEAT_VM_SWAP=1
-OCONF_VM_SWAP_SIZE='512M'
+OFEAT_VM_SWAP*=1
+OCONF_VM_SWAP_SIZE*='512M'
 
 # size of the rootfs partition
-OCONF_VM_ROOTFS_SIZE='2G'
+OCONF_VM_ROOTFS_SIZE*='2G'
 
 # size of the UEFI ESP (if any)
-OCONF_VM_ESP_SIZE='100M'
+OCONF_VM_ESP_SIZE*='100M'
