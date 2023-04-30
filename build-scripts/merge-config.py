@@ -105,9 +105,23 @@ def main(prog, argv):
         alias_map.update(config_parser.gen_parse_alias_map(arg_config.alias_map))
     # --
 
-    varnames_merge_value = set(
-        map(get_unalias_varname_func(alias_map), arg_config.merge_vars)
-    )
+    varnames_merge_value = set()
+
+    if arg_config.merge_vars_file:
+        varnames_merge_value.update(
+            map(
+                get_unalias_varname_func(alias_map),
+                config_parser.gen_parse_merge_vars(arg_config.merge_vars_file)
+            )
+        )
+    # --
+
+    if arg_config.merge_vars:
+        varnames_merge_value.update(
+            map(get_unalias_varname_func(alias_map), arg_config.merge_vars)
+        )
+    # --
+    raise NotImplementedError(varnames_merge_value)
 
     vmap = {}
     for infile in arg_config.infiles:
@@ -196,6 +210,13 @@ def main_get_arg_parser(prog):
     )
 
     parser.add_argument(
+        '-M', '--merge-vars-file', metavar='<file>',
+        dest='merge_vars_file',
+        default=None,
+        help='file containing variables that should be merged with existing files (instead of replace them)'
+    )
+
+    parser.add_argument(
         '-e', '--extra-vars', metavar='<vardef>',
         dest='extra_vars',
         default=[], action='append',
@@ -263,6 +284,25 @@ class ConfigParser(object):
                 raise ValueError("Failed to match alias mapping", infile, (old_varname, new_varname))
         # -- end for
     # --- end of gen_parse_alias_map (...) ---
+
+    def gen_parse_merge_vars(self, infile):
+        # format: varname
+        re_varname = self.re_varname  # ref
+
+        with open(infile, 'rt') as fh:
+            for line in filter(None, (l.rstrip() for l in fh)):
+                if line[0] == '#':
+                    # comment
+                    pass
+
+                elif re_varname.match(line):
+                    yield line
+
+                else:
+                    raise ValueError("invalid merge_vars file", infile, line)
+            # -- end for
+        # -- end with
+    # --- end of gen_parse_merge_vars (...) ---
 
 # --- end of ConfigParser ---
 
