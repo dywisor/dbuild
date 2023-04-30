@@ -68,15 +68,24 @@ def get_unalias_varname_func(alias_map):
 # --- end of get_unalias_varname_func (...) ---
 
 
-def merge_config_vars(vmap, new_vars, *, alias_map=None, varnames_merge_value=None):
+def merge_config_vars(vmap, new_vars, *, alias_map=None, varnames_merge_value=None, source=None):
     fn_unalias_varname = get_unalias_varname_func(alias_map)
 
     if varnames_merge_value is None:
         varnames_merge_value = set()
     # --
 
-    for varname_orig, value in new_vars:
+    for is_declaration, varname_orig, value in new_vars:
         varname = fn_unalias_varname(varname_orig)
+
+        if is_declaration is not None:
+            if not is_declaration and varname not in vmap:
+                raise RuntimeError(f'variable {varname_orig} gets set in {source}, but has not been declared yet')
+
+            elif is_declaration and varname in vmap:
+                raise RuntimeError(f'variable {varname_orig} gets declared in {source}, but has already been declared previously')
+            # --
+        # --
 
         if varname in varnames_merge_value:
             old_value = vmap.get(varname, None)
@@ -127,7 +136,8 @@ def main(prog, argv):
         merge_config_vars(
             vmap, config_parser.gen_parse_vars(infile),
             alias_map=alias_map,
-            varnames_merge_value=varnames_merge_value
+            varnames_merge_value=varnames_merge_value,
+            source=infile,
         )
     # -- end for
 
@@ -135,7 +145,8 @@ def main(prog, argv):
         merge_config_vars(
             vmap, arg_config.extra_vars,
             alias_map=alias_map,
-            varnames_merge_value=varnames_merge_value
+            varnames_merge_value=varnames_merge_value,
+            source='cmdline',
         )
     # --
 
@@ -178,7 +189,7 @@ def main_get_arg_parser(prog):
             if not varname or not vsep:
                 raise argparse.ArgumentTypeError("expected VARNAME=[VALUE] argument")
 
-            return (varname, value)
+            return (False, varname, value)
         # --
     # --- end of arg_vardef (...) ---
 
@@ -258,17 +269,34 @@ class ConfigParser(object):
             lexer = shlex.shlex(fh, infile, posix=True, punctuation_chars=True)
 
             for tok in lexer:
-                varname, vsep, value = tok.partition('=')
+                varname_tok, vsep, value = tok.partition('=')
+
+                if not varname_tok:
+                    varname = varname_tok
+                    is_declaration = False
+
+                elif varname_tok[-1] == '*':
+                    varname = varname_tok[:-1]
+                    is_declaration = True
+
+                elif varname_tok[-1] == '?':
+                    varname = varname_tok[:-1]
+                    is_declaration = None
+
+                else:
+                    varname = varname_tok
+                    is_declaration = False
+                # --
 
                 if vsep and re_varname.match(varname):
-                    yield (varname, value)
+                    yield (is_declaration, varname, value)
 
                 else:
                     raise ValueError("Failed to match vardef", infile, tok)
     # --- end of gen_parse (...) ---
 
     def gen_parse_vars(self, infile):
-        # format: varname=value
+        # format: varname[*|?]=value
         yield from self.gen_parse(infile)
     # --- end of gen_parse_vars (...) ---
 
@@ -276,7 +304,11 @@ class ConfigParser(object):
         # format: old_varname=new_varname
         re_varname = self.re_varname  # ref
 
-        for old_varname, new_varname in self.gen_parse(infile):
+        for is_declaration, old_varname, new_varname in self.gen_parse(infile):
+            if is_declaration is not False:
+                raise ValueError("alias mapping does not support declaration syntax")
+            # --
+
             if re_varname.match(new_varname):
                 yield (old_varname, new_varname)
             else:
