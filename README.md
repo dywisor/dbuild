@@ -16,6 +16,20 @@ Currently, the following output image formats are supported:
 
   - VMware ESXi/vSphere: OVA VM image, UEFI boot
 
+  - Hardware (amd64): disk image, BIOS or UEFI boot
+
+  - LVM-based, optionally with RAID1 and LUKS
+
+      - rootfs: btrfs optionally w/ ``snapper`` initialized or ext4
+
+      - RAID1: single-disk mdadm raid1 for /boot and/or root PV,
+        redundancy must be added after deploying using ``mdadm --grow``
+
+      - LUKS: intermediate passphrase,
+        a proper key must be set after deploying
+
+    - **not fully integrated** (yet?) -- must execute two distinct build scripts
+
 Depending on the configuration profile, the image will be customized.
 Features include:
 
@@ -33,13 +47,14 @@ building the image takes roughly 30 seconds
 The image size is about 100M compressed (zstd).
 Once deployed, the container boots in half a second.
 
-Building VM images (KVM/Hyper-V/VMware) takes considerably longer (about 2 minutes).
+Building VM images (KVM/Hyper-V/VMware) or Hardware images takes considerably longer (about 2 minutes).
 
 
 Host dependencies:
 
   - ``python3``
   - ``mmdebstrap``
+  - GNU ``tar``
   - ``rsync``
   - ``systemctl`` (for systemd targets)
   - ``qemu-user`` (for cross-arch targets)
@@ -51,6 +66,28 @@ Host dependencies:
     (for creating Hyper-V / VMware disk images)
   - *optional*: VMware ``ovftool`` (for creating VMware OVA images)
   - *optional*: web proxy for caching ``.deb`` downloads, e.g. ``apt-cacher-ng`` or ``squid``
+  - *optional*: for building Hardware images
+    - ``sudo``
+    - various ``coreutils`` tools
+      - ``chroot``
+      - ``install``
+      - ``mkdir``
+      - ``sync``
+      - ``truncate``
+    - various ``util-linux`` and related split-package tools
+      - ``losetup``
+      - ``mount``
+      - ``mountpoint``
+      - ``partx``
+      - ``mkswap``
+      - ``sfdisk``
+      - ``umount``
+    - ``lvm2``
+    - ``e2fsprogs``
+    - *optional*: ``btrfs-progs`` (for btrfs volumes)
+    - *optional*: ``dosfstools`` (for UEFI boot)
+    - *optional*: ``mdadm``: (for RAID1)
+    - *optional*: ``cryptsetup`` (for LUKS)
 
 Example usage:
 
