@@ -1,4 +1,8 @@
 Debian image builder using mmdebstrap
+========================================================================
+
+Introduction
+------------------------------------------------------------------------
 
 Prepares a new Debian image so that it can deployed on another host.
 The main purpose is building images for Proxmox PVE containers (LXC),
@@ -50,46 +54,49 @@ Once deployed, the container boots in half a second.
 Building VM images (KVM/Hyper-V/VMware) or Hardware images takes considerably longer (about 2 minutes).
 
 
-Host dependencies:
+Host Dependencies
+------------------------------------------------------------------------
 
-  - ``python3``
-  - ``mmdebstrap``
-  - GNU ``tar``
-  - ``rsync``
-  - ``systemctl`` (for systemd targets)
-  - ``qemu-user`` (for cross-arch targets)
-  - *optional*: genimage (for building disk images)
+- ``python3``
+- ``mmdebstrap``
+- GNU ``tar``
+- ``rsync``
+- ``systemctl`` (for systemd targets)
+- ``qemu-user`` (for cross-arch targets)
+- *optional*: genimage (for building disk images)
 
-    See [pengutronix/genimage](https://github.com/pengutronix/genimage)
-    and [dywisor/genimage-debian](https://github.com/dywisor/genimage-debian/tree/debian/stable/debian) for building a ``.deb``
-  - *optional*: ``qemu-img`` from ``qemu-utils``
-    (for creating Hyper-V / VMware disk images)
-  - *optional*: VMware ``ovftool`` (for creating VMware OVA images)
-  - *optional*: web proxy for caching ``.deb`` downloads, e.g. ``apt-cacher-ng`` or ``squid``
-  - *optional*: for building Hardware images
-    - ``sudo``
-    - various ``coreutils`` tools
-      - ``chroot``
-      - ``install``
-      - ``mkdir``
-      - ``sync``
-      - ``truncate``
-    - various ``util-linux`` and related split-package tools
-      - ``losetup``
-      - ``mount``
-      - ``mountpoint``
-      - ``partx``
-      - ``mkswap``
-      - ``sfdisk``
-      - ``umount``
-    - ``lvm2``
-    - ``e2fsprogs``
-    - *optional*: ``btrfs-progs`` (for btrfs volumes)
-    - *optional*: ``dosfstools`` (for UEFI boot)
-    - *optional*: ``mdadm``: (for RAID1)
-    - *optional*: ``cryptsetup`` (for LUKS)
+  See [pengutronix/genimage](https://github.com/pengutronix/genimage)
+  and [dywisor/genimage-debian](https://github.com/dywisor/genimage-debian/tree/debian/stable/debian) for building a ``.deb``
+- *optional*: ``qemu-img`` from ``qemu-utils``
+  (for creating Hyper-V / VMware disk images)
+- *optional*: VMware ``ovftool`` (for creating VMware OVA images)
+- *optional*: web proxy for caching ``.deb`` downloads, e.g. ``apt-cacher-ng`` or ``squid``
+- *optional*: for building Hardware images
+  - ``sudo``
+  - various ``coreutils`` tools
+    - ``chroot``
+    - ``install``
+    - ``mkdir``
+    - ``sync``
+    - ``truncate``
+  - various ``util-linux`` and related split-package tools
+    - ``losetup``
+    - ``mount``
+    - ``mountpoint``
+    - ``partx``
+    - ``mkswap``
+    - ``sfdisk``
+    - ``umount``
+  - ``lvm2``
+  - ``e2fsprogs``
+  - *optional*: ``btrfs-progs`` (for btrfs volumes)
+  - *optional*: ``dosfstools`` (for UEFI boot)
+  - *optional*: ``mdadm``: (for RAID1)
+  - *optional*: ``cryptsetup`` (for LUKS)
 
-Example usage:
+
+Example Usage
+------------------------------------------------------------------------
 
 ```
 ./mkimage ./profiles/examples/deb11-amd64-lxc
