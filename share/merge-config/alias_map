@@ -1,0 +1,2 @@
+# alias map for renaming deprecated config option
+# format: old_varname=new_varname

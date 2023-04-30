@@ -121,7 +121,6 @@ def main(prog, argv):
             map(get_unalias_varname_func(alias_map), arg_config.merge_vars)
         )
     # --
-    raise NotImplementedError(varnames_merge_value)
 
     vmap = {}
     for infile in arg_config.infiles:

@@ -1,0 +1,4 @@
+# config variables are usually replaced on redefinition.
+# This file list variable names that should be merged instead.
+# format: one varname per line
+OCONF_BOOT_CMDLINE

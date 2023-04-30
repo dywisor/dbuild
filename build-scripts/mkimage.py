@@ -301,14 +301,9 @@ def main_init_staging_dir(cfg, staging_env):
     merge_config_cmdv = [
         str(cfg.project_scripts_dir / 'merge-config.py'),
         '-o', str(staging_env.root / 'config'),
+        '-A', str(cfg.project_share_dir / 'merge-config' / 'alias_map'),
+        '-M', str(cfg.project_share_dir / 'merge-config' / 'merge_vars'),
     ]
-
-    # value-merged varnames
-    for merged_varname in [
-        'OCONF_BOOT_CMDLINE',
-    ]:
-        merge_config_cmdv.extend(['-m', merged_varname])
-    # --
 
     for varname, value in [
         ('DBUILD_PROFILE_NAME', cfg.profile_config_name),
