@@ -40,12 +40,44 @@ def expand_config(vmap):
 # --- end of expand_config (...) ---
 
 
-def merge_config_vars(vmap, new_vars, *, varnames_merge_value=None):
+def unalias_varname(alias_map, varname_orig):
+    visited = set()
+    varname_cur = varname_orig
+
+    while varname_cur not in visited:
+        visited.add(varname_cur)
+
+        try:
+            varname_next = alias_map[varname_cur]
+        except KeyError:
+            return varname_cur
+        # --
+
+        varname_cur = varname_next
+    # -- end while
+
+    raise ValueError(f'circular ref in alias map: start={varname_orig} break={varname_cur}', alias_map)
+# --- end of unalias_varname (...) ---
+
+
+def get_unalias_varname_func(alias_map):
+    if alias_map:
+        return (lambda v, *, _m=alias_map: unalias_varname(_m, v))
+    else:
+        return (lambda v: v)
+# --- end of get_unalias_varname_func (...) ---
+
+
+def merge_config_vars(vmap, new_vars, *, alias_map=None, varnames_merge_value=None):
+    fn_unalias_varname = get_unalias_varname_func(alias_map)
+
     if varnames_merge_value is None:
         varnames_merge_value = set()
     # --
 
-    for varname, value in new_vars:
+    for varname_orig, value in new_vars:
+        varname = fn_unalias_varname(varname_orig)
+
         if varname in varnames_merge_value:
             old_value = vmap.get(varname, None)
             new_value = ' '.join((
@@ -66,12 +98,22 @@ def main(prog, argv):
     arg_parser = main_get_arg_parser(prog)
     arg_config = arg_parser.parse_args(argv)
 
-    varnames_merge_value = set(arg_config.merge_vars)
+    config_parser = ConfigParser()
+
+    alias_map = {}
+    if arg_config.alias_map:
+        alias_map.update(config_parser.gen_parse_alias_map(arg_config.alias_map))
+    # --
+
+    varnames_merge_value = set(
+        map(get_unalias_varname_func(alias_map), arg_config.merge_vars)
+    )
 
     vmap = {}
     for infile in arg_config.infiles:
         merge_config_vars(
-            vmap, gen_parse_infile(infile),
+            vmap, config_parser.gen_parse_vars(infile),
+            alias_map=alias_map,
             varnames_merge_value=varnames_merge_value
         )
     # -- end for
@@ -79,6 +121,7 @@ def main(prog, argv):
     if arg_config.extra_vars:
         merge_config_vars(
             vmap, arg_config.extra_vars,
+            alias_map=alias_map,
             varnames_merge_value=varnames_merge_value
         )
     # --
@@ -134,6 +177,12 @@ def main_get_arg_parser(prog):
     )
 
     parser.add_argument(
+        '-A', '--alias-map', metavar='<file>',
+        default=None,
+        help='varname aliases map file'
+    )
+
+    parser.add_argument(
         '-Q', '--query', metavar='<varname>',
         default=None,
         help='query a single variable from the merged config and write it to stdout (and do not write outfile)'
@@ -173,22 +222,49 @@ def shell_quote(s):
 # --- end of shell_quote (...) ---
 
 
-def gen_parse_infile(infile):
-    re_varname = re.compile(r'^[A-Za-z][A-Za-z0-9_]*$')
+class ConfigParser(object):
 
-    with open(infile, 'rt') as fh:
-        lexer = shlex.shlex(fh, infile, posix=True, punctuation_chars=True)
+    RESTR_VARNAME = r'^[A-Za-z][A-Za-z0-9_]*$'
 
-        for tok in lexer:
-            varname, vsep, value = tok.partition('=')
+    def __init__(self):
+        super().__init__()
+        self.re_varname = re.compile(self.RESTR_VARNAME)
+    # --- end of __init__ (...) ---
 
-            if vsep and re_varname.match(varname):
-                yield (varname, value)
-                pass
+    def gen_parse(self, infile):
+        re_varname = self.re_varname  # ref
 
+        with open(infile, 'rt') as fh:
+            lexer = shlex.shlex(fh, infile, posix=True, punctuation_chars=True)
+
+            for tok in lexer:
+                varname, vsep, value = tok.partition('=')
+
+                if vsep and re_varname.match(varname):
+                    yield (varname, value)
+
+                else:
+                    raise ValueError("Failed to match vardef", infile, tok)
+    # --- end of gen_parse (...) ---
+
+    def gen_parse_vars(self, infile):
+        # format: varname=value
+        yield from self.gen_parse(infile)
+    # --- end of gen_parse_vars (...) ---
+
+    def gen_parse_alias_map(self, infile):
+        # format: old_varname=new_varname
+        re_varname = self.re_varname  # ref
+
+        for old_varname, new_varname in self.gen_parse(infile):
+            if re_varname.match(new_varname):
+                yield (old_varname, new_varname)
             else:
-                raise ValueError("Failed to match vardef", infile, tok)
-# --- end of gen_parse_infiles (...) ---
+                raise ValueError("Failed to match alias mapping", infile, (old_varname, new_varname))
+        # -- end for
+    # --- end of gen_parse_alias_map (...) ---
+
+# --- end of ConfigParser ---
 
 
 def run_main():
