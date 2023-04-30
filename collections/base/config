@@ -1,5 +1,5 @@
 # NOTE:
-#   This is the base configuration file defining all
+#   This is the base configuration file defining common
 #   known variables and their respective default values.
 #
 #   Collections may override this as needed.
