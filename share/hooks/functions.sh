@@ -250,3 +250,66 @@ dbuild_import_overlay() {
         "${overlay_src%/}/" \
         "${overlay_dst%/}/" || return
 }
+
+
+# verify_file_checksum_generic ( checksum_cmd, checksum_file, target_file )
+#
+verify_file_checksum_generic() {
+    local checksum_cmd
+    local checksum_file
+    local target_file
+
+    local checksum_wanted
+    local checksum_target
+
+    checksum_cmd="${1:?}"
+    checksum_file="${2:?}"
+    target_file="${3:?}"
+
+    # verify sha512sum (or other %checksum_cmd)
+    # (a) ignore missing files listed in the checksum file
+    # (b) downloaded file must be present in the checksum file
+
+    checksum_wanted="$(
+        awk \
+            -v fname="${target_file##*/}" \
+            '($2 == fname) { print $1; exit; }' \
+            < "${checksum_file}"
+    )"
+
+    checksum_target="$( "${checksum_cmd}" "${target_file}" | awk '{ print $1; }' )"
+
+    if [ -z "${checksum_target}" ]; then
+        print_err "Cannot verify ${target_file##*/} - failed to get ${checksum_cmd}"
+        return 1
+
+    elif [ -z "${checksum_wanted}" ]; then
+        print_err "Cannot verify ${target_file##*/} - no good ${checksum_cmd} known"
+        return 2
+
+    elif [ "${checksum_target}" != "${checksum_wanted}" ]; then
+        print_err "Failed to verify ${target_file##*/} - ${checksum_cmd} differs, ${checksum_wanted} (expected) != ${checksum_target} (downloaded)"
+        return 3
+
+    else
+        return 0
+    fi
+}
+
+
+# verify_file_checksum ( target_file, [category] )
+#
+#   Verifies target_file against a known sha512 checksum
+#   stored in HOOK_FILESDIR/sha512sums (or <category>.sha512sums).
+#
+verify_file_checksum() {
+    local checksum_file
+
+    if [ -n "${2-}" ]; then
+        checksum_file="${HOOK_FILESDIR:?}/${2}.sha512sums"
+    else
+        checksum_file="${HOOK_FILESDIR:?}/sha512sums"
+    fi
+
+    verify_file_checksum_generic sha512sum "${checksum_file}" "${1:?}"
+}
