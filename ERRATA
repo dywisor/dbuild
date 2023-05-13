@@ -1,3 +1,1 @@
-* LUKS
-  generated initramfs is broken,
-  needs to be regenerated in a chroot on the target for now
+Known Issues:

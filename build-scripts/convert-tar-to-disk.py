@@ -178,7 +178,6 @@ class MDADMConfig:
 class LUKSConfig:
     enabled         : bool
     enc_name        : str
-    enc_name_dbuild : str
     luks_uuid       : str
     passphrase      : str
     luks_type       : str
@@ -613,14 +612,12 @@ def parse_disk_config(disk_config_data):
         # --
 
         enc_name        = arg_luks.get('enc_name') or default_name
-        enc_name_dbuild = arg_luks.get('enc_name_dbuild') or f'dbuild_{enc_name}'
         luks_type       = arg_luks.get('luks_type') or 'luks2'
         luks_uuid       = arg_luks.get('luks_uuid') or mkobj_default_uuid()
 
         return LUKSConfig(
             enabled         = mkobj_bool(arg_luks.get('enabled'), True),
             enc_name        = enc_name,
-            enc_name_dbuild = enc_name_dbuild,
             luks_uuid       = luks_uuid,
             passphrase      = arg_luks.get('passphrase', ''),
             luks_type       = luks_type,
@@ -1361,11 +1358,11 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
 
             dj.luks_open(
                 root_pv,
-                disk_config.root_vg_luks.enc_name_dbuild,
+                disk_config.root_vg_luks.enc_name,
                 disk_config.root_vg_luks.passphrase,
             )
 
-            root_pv = f'/dev/mapper/{disk_config.root_vg_luks.enc_name_dbuild}'
+            root_pv = f'/dev/mapper/{disk_config.root_vg_luks.enc_name}'
         # --
 
         #> create VG on root disk
