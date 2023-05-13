@@ -1,3 +1,4 @@
+console-setup
 initramfs-tools
 zstd
 busybox
