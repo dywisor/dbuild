@@ -1,0 +1,5 @@
+The proxmox-pve collection prepares the rootfs
+for running Proxmox PVE, but it won't install it.
+
+NOTE: You will need to import the Proxmox PVE
+signing keys into the build host's apt configuration.

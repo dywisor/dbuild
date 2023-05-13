@@ -1,0 +1,8 @@
+# System Configuration
+# --------------------
+
+
+# Network Configuration
+# ---------------------
+
+OFEAT_NETCONFIG_DHCP=0
