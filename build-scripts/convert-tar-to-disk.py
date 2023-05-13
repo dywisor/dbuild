@@ -185,6 +185,7 @@ class LUKSConfig:
     cipher          : Optional[str]
     key_size        : Optional[int]
     integrity_alg   : Optional[str]
+    pbkdf           : Optional[str]
 # --- end of LUKSConfig ---
 
 
@@ -625,6 +626,7 @@ def parse_disk_config(disk_config_data):
             cipher          = arg_luks.get('cipher', None),
             key_size        = mkobj_int(arg_luks.get('key_size'), None),
             integrity_alg   = arg_luks.get('integrity', None),
+            pbkdf           = arg_luks.get('pbkdf', None),
         )
     # --- end of mkobj_luks_config (...) ---
 
@@ -939,6 +941,7 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
             ('--cipher',    luks_config.cipher),
             ('--key-size',  luks_config.key_size),
             ('--integrity', luks_config.integrity_alg),
+            ('--pbkdf',     luks_config.pbkdf),
         ]:
             if value is not None:
                 cmdv.append(opt)
