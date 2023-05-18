@@ -19,3 +19,18 @@ if [ "${OFEAT_HW_ROOT_VG_LUKS:-0}" -eq 1 ]; then
 fi
 
 # (LVM is always enabled)
+
+# separate boot needs e2fsprogs
+if [ "${OFEAT_SEPARATE_BOOT:-0}" -eq 1 ]; then
+    printf '%s\n' e2fsprogs
+fi
+
+# btrfs-progs / e2fsprogs depending on rootfs
+case "${OCONF_ROOTFS_TYPE-}" in
+    'ext4')
+        printf '%s\n' e2fsprogs
+    ;;
+    'btrfs')
+        printf '%s\n' btrfs-progs
+    ;;
+esac
