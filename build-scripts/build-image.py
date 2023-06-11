@@ -480,9 +480,23 @@ def main_build_mmdebstrap_opts(cfg):
         '--variant={}'.format(cfg.vmap['DBUILD_TARGET_VARIANT']),
         '--components={}'.format(cfg.vmap['DBUILD_TARGET_COMPONENTS']),
         '--architectures={}'.format(cfg.vmap['DBUILD_TARGET_ARCH']),
-
-        '--hook-directory={}'.format(cfg.staging.hook_dir),
     ]
+
+    if cfg.vmap['OFEAT_MMDEBSTRAP_MERGED_USR'] == '1':
+        if not cfg.vmap['OCONF_MMDEBSTRAP_MERGED_USR']:
+            raise ValueError('OCONF_MMDEBSTRAP_MERGED_USR')
+        # --
+
+        cfg.mm_argv.append(
+            '--hook-dir=/usr/share/mmdebstrap/hooks/{}'.format(
+                cfg.vmap['OCONF_MMDEBSTRAP_MERGED_USR']
+            )
+        )
+    # --
+
+    cfg.mm_argv.append(
+        '--hook-directory={}'.format(cfg.staging.hook_dir),
+    )
 
     pkg_list = set()
 

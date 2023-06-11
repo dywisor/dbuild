@@ -234,6 +234,21 @@ OCONF_KBD_LAYOUT*=''
 #
 OCONF_TIMEZONE*='Europe/Berlin'
 
+# Whether to use the merged-usr layout
+#
+#   The configuration is split into two separate options:
+#
+#     * Whether to instruct mmdebstrap to use a specific (no-)merged-usr hook
+#       -> set OFEAT_MMDEBSTRAP_MERGED_USR=1
+#          and OCONF_MMDEBSTRAP_MERGED_USR "no-merged-usr" or "merged-usr"
+#
+#     * Whether to assume a merged-usr layout in build-image and hook scripts
+#       -> set OFEAT_MERGED_USR to 0 (no-merged-usr) 1 (merged-usr)
+#
+OFEAT_MMDEBSTRAP_MERGED_USR*=0
+OCONF_MMDEBSTRAP_MERGED_USR*=''
+OFEAT_MERGED_USR*=0
+
 # Downsize the target rootfs by excluding non-essential files
 #
 OFEAT_ROOTFS_MINIMAL*=0

@@ -206,7 +206,30 @@ get_user_extra_groups() {
     fi
 }
 
-# int dbuild_import_overlay ( overlay_src, [overlay_dst_rel:="/"], [args...] )
+# int _dbuild_import_overlay__rsync ( args... )
+#
+#   default rsync options/excludes split out from dbuild_import_overlay(),
+#   courtesy of merged-usr support.
+_dbuild_import_overlay__rsync() {
+    rsync -haxHAX \
+        --exclude='__pycache__' \
+        --exclude='*.py[co]' \
+        --exclude='[._]*.s[a-v][a-z]' \
+        --exclude='[._]*.sw[a-p]' \
+        --exclude='[._]s[a-rt-v][a-z]' \
+        --exclude='[._]ss[a-gi-z]' \
+        --exclude='[._]sw[a-p]' \
+        --exclude='Session.vim' \
+        --exclude='.netrwhist' \
+        --exclude='*~' \
+        --exclude='.DS_Store' \
+        --exclude='.AppleDouble' \
+        --exclude='.LSOverride' \
+        "${@}"
+}
+
+
+# int dbuild_import_overlay ( overlay_src, [overlay_dst_rel:="/"], [args...], **OFEAT_MERGED_USR )
 #
 #   Recursively copies files from an overlay directory
 #   to the target rootfs (or a subdirectory thereof).
@@ -214,6 +237,7 @@ get_user_extra_groups() {
 dbuild_import_overlay() {
     local overlay_src
     local overlay_dst
+    local dirname
 
     overlay_src="${1:?}"
     case "${2-}" in
@@ -231,24 +255,47 @@ dbuild_import_overlay() {
         set --
     fi
 
-    rsync -haxHAX \
-        --exclude='__pycache__' \
-        --exclude='*.py[co]' \
-        --exclude='[._]*.s[a-v][a-z]' \
-        --exclude='[._]*.sw[a-p]' \
-        --exclude='[._]s[a-rt-v][a-z]' \
-        --exclude='[._]ss[a-gi-z]' \
-        --exclude='[._]sw[a-p]' \
-        --exclude='Session.vim' \
-        --exclude='.netrwhist' \
-        --exclude='*~' \
-        --exclude='.DS_Store' \
-        --exclude='.AppleDouble' \
-        --exclude='.LSOverride' \
-        "${@}" \
-        -- \
-        "${overlay_src%/}/" \
-        "${overlay_dst%/}/" || return
+    if ! feat_all "${OFEAT_MERGED_USR:-0}"; then
+        # traditional no-merged-usr variant:
+        #   copy without adjusting filesystem paths
+        _dbuild_import_overlay__rsync \
+            "${@}" \
+            -- \
+            "${overlay_src%/}/" \
+            "${overlay_dst%/}/" || return
+
+    else
+        # merged-usr variant: relocate known directories,
+        # resulting in *many* rsync invocations
+        #
+        # NOTE: excludes in %args may be broken for /usr paths!
+        #
+        _dbuild_import_overlay__rsync \
+            --exclude='/bin' \
+            --exclude='/lib' \
+            --exclude='/lib32' \
+            --exclude='/lib64' \
+            --exclude='/libexec' \
+            --exclude='/sbin' \
+            \
+            "${@}" \
+            -- \
+            "${overlay_src%/}/" \
+            "${overlay_dst%/}/" || return
+
+        for dirname in bin lib lib32 lib64 libexec sbin; do
+            if \
+                [ -d "${overlay_src}/${dirname}" ] && \
+                [ ! -h "${overlay_src}/${dirname}" ]
+            then
+                dodir_mode "${overlay_dst%/}/usr/${dirname}" || return
+
+                _dbuild_import_overlay__rsync \
+                    "${overlay_src%/}/${dirname}/" \
+                    "${overlay_dst%/}/usr/${dirname}/" || return
+            fi
+        done
+    fi
 }
 
 
