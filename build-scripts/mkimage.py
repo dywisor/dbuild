@@ -168,6 +168,7 @@ def main_gen_expand_build_collections(cfg, wanted):
     collections_done       = set()
     collections_todo_queue = []
     collections_todo_dep   = collections.OrderedDict()
+    collections_dep_late   = set()
 
     ## scan for additional dependencies
     collections_todo_scan = wanted
@@ -207,8 +208,17 @@ def main_gen_expand_build_collections(cfg, wanted):
 
                         # depends X: add dep on X, enqueue scanning of X
                         for item in section_iter_list(bcol_meta_config, 'depends'):
-                            dep_set.add(item)
-                            collections_todo_scan_next.append(item)
+                            if item == '*':
+                                # depend on most/all other collections,
+                                # evaluated after dep expansion
+                                # Not allowed for virtual collections
+                                if not bcol_is_virtual:
+                                    collections_dep_late.add(name)
+                                else:
+                                    raise RuntimeError('late-dep on all not allowed for virtual collections')
+                            else:
+                                dep_set.add(item)
+                                collections_todo_scan_next.append(item)
                         # --
 
                         # wants X: enqueue scanning of X
@@ -231,6 +241,17 @@ def main_gen_expand_build_collections(cfg, wanted):
             collections_todo_scan = collections_todo_scan_next
         # -- end for
     # -- end while scan for dependencies
+
+    # evaluate late dependencies
+    collections_dep_early = set((
+        name for name in collections_todo_dep
+        if name not in collections_dep_late
+    ))
+
+    if collections_dep_late:
+        for name in collections_dep_late:
+            collections_todo_dep[name].update(collections_dep_early)
+    # --
 
     ## resolve dependencies
     while collections_todo_queue:
