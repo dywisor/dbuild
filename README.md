@@ -99,7 +99,7 @@ Example Usage
 ------------------------------------------------------------------------
 
 ```
-./mkimage ./profiles/examples/deb11-amd64-lxc
+./mkimage ./profiles/examples/deb11/deb11-amd64-lxc
 ```
 
 This will create an output image file at
