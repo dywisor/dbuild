@@ -45,7 +45,7 @@ Features include:
 
   - Minimal package selection
 
-Using the example config profile *deb11-amd64-lxc*,
+Using the example config profile *deb12-amd64-lxc*,
 building the image takes roughly 30 seconds
 (with optimizations such as using tmpfs workdirs and a caching proxy).
 The image size is about 100M compressed (zstd).
@@ -99,12 +99,12 @@ Example Usage
 ------------------------------------------------------------------------
 
 ```
-./mkimage ./profiles/examples/deb11/deb11-amd64-lxc
+./mkimage ./profiles/examples/deb12/deb12-amd64-lxc
 ```
 
 This will create an output image file at
-``obj/deb11-amd64-lxc/deb11-amd64-lxc_rootfs_<DATE>_<TIMESTAMP>.tar.zst``.
-Additionally, a symlink ``obj/deb11-amd64-lxc/deb11-amd64-lxc_rootfs.tar.zst``
+``obj/deb12-amd64-lxc/deb12-amd64-lxc_rootfs_<DATE>_<TIMESTAMP>.tar.zst``.
+Additionally, a symlink ``obj/deb12-amd64-lxc/deb12-amd64-lxc_rootfs.tar.zst``
 pointing to that file will be created.
 
 The container image can then be imported in Proxmox PVE, for instance
@@ -112,8 +112,8 @@ The container image can then be imported in Proxmox PVE, for instance
 
 ```
 pct create 9999 \
-    /tmp/deb11-amd64-lxc_rootfs.tar.zst \
-    --hostname    testing-deb11-amd64-lxc \
+    /tmp/deb12-amd64-lxc_rootfs.tar.zst \
+    --hostname    testing-deb12-amd64-lxc \
     --memory      1024 \
     --net0        "name=eth0,bridge=vmbr0,firewall=0,gw=198.51.100.1,ip=198.51.100.200/24,tag=10,type=veth" \
     --storage     "local" \
