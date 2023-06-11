@@ -333,6 +333,20 @@ OCONF_BOOT_CMDLINE*=''
 OFEAT_KERNEL_IMAGE*=0
 OCONF_KERNEL_IMAGE*=
 
+# Whether to reduce the size of installed kernel images
+# at the expense of functionality
+#
+#   If set to true (1), some kernel modules will be excluded
+#   when installing, which helps to reduce the rootfs size.
+#
+#   While the base collection introduces this configuration option,
+#   it is up to more specific collections to actually exclude kernel modules.
+#   For example, this could remove bluetooth support from pure VM images.
+#
+#   NOTE: configured independently of OFEAT_ROOTFS_MINIMAL
+#
+OFEAT_ROOTFS_MINIMAL_KERNEL*=0
+
 # Whether to include support for signed UEFI booting (bootloader/kernel)
 #
 #  NOTE: This feature is not implemented in the base collection.
