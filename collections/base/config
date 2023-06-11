@@ -245,9 +245,9 @@ OCONF_TIMEZONE*='Europe/Berlin'
 #     * Whether to assume a merged-usr layout in build-image and hook scripts
 #       -> set OFEAT_MERGED_USR to 0 (no-merged-usr) 1 (merged-usr)
 #
-OFEAT_MMDEBSTRAP_MERGED_USR*=0
-OCONF_MMDEBSTRAP_MERGED_USR*=''
-OFEAT_MERGED_USR*=0
+OFEAT_MMDEBSTRAP_MERGED_USR*=1
+OCONF_MMDEBSTRAP_MERGED_USR*='merged-usr'
+OFEAT_MERGED_USR*=1
 
 # Downsize the target rootfs by excluding non-essential files
 #
