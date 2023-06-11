@@ -5,16 +5,16 @@
 # FIXME: distro details
 {
 cat << EOF > "${TARGET_ROOTFS:?}/etc/appliance.info"
-Name: debian-11-standard
-Version: 11.3-1
+Name: debian-12-standard
+Version: 12.0-1
 Type: lxc
-OS: debian-11
+OS: debian-12
 Section: system
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Architecture: amd64
 Installed-Size: 500
 Infopage: https://pve.proxmox.com/wiki/Linux_Container#pct_supported_distributions
-Description: Debian 11 Bullseye (standard)
- A small Debian Bullseye system including all standard packages.
+Description: Debian 12 Bookworm (standard)
+ A small Debian Bookworm system including all standard packages.
 EOF
 } || die "Failed to write appliance.info"
