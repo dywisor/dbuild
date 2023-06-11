@@ -17,3 +17,6 @@ OCONF_VM_ROOTFS_SIZE*='2G'
 
 # size of the UEFI ESP (if any)
 OCONF_VM_ESP_SIZE*='100M'
+
+# reduce size of installed kernel images
+OFEAT_ROOTFS_MINIMAL_KERNEL=1
