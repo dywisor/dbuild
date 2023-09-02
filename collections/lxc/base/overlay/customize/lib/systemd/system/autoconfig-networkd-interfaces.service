@@ -1,0 +1,27 @@
+[Unit]
+Description = generate systemd-networkd configuration from /etc/network/interfaces (Proxmox LXC container compat)
+
+Documentation = man:interfaces(5)
+Documentation = man:systemd-networkd.service(8)
+
+ConditionVirtualization = container
+
+DefaultDependencies = no
+
+After   = systemd-udevd.service systemd-sysusers.service systemd-sysctl.service
+Wants   = network-pre.target
+Before  = network.target multi-user.target shutdown.target
+Before  = network-pre.target
+Before  = systemd-networkd.service
+Before  = systemd-networkd.socket
+
+Conflicts = shutdown.target
+
+
+[Service]
+Type = oneshot
+ExecStart = /usr/local/sbin/autoconfig-networkd-interfaces.py
+
+
+[Install]
+WantedBy = multi-user.target
