@@ -16,7 +16,7 @@ gen_fstab() {
 cat << EOF
 # fstab for UEFI VMs
 UUID=${rootfs_uuid} / ext4 discard,relatime,user_xattr,errors=remount-ro 0 1
-LABEL=ESP /boot/efi vfat umask=0077 0 1
+LABEL=ESP /boot/efi vfat umask=0077 0 2
 EOF
 
     if feat_all "${OFEAT_VM_SWAP:-0}"; then
