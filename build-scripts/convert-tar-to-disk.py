@@ -1448,7 +1448,7 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
         ##> initialize apt cache LV (optional)
         volume_config = disk_config.volumes.get('apt', None)
         if volume_config and volume_config.enabled:
-            blk_dev = f'{root_vg}-log'
+            blk_dev = f'{root_vg}-apt'
 
             env.run_as_admin(
                 ['lvcreate', '-L', volume_config.size, '-n', 'apt', disk_config.root_vg_name],
