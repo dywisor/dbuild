@@ -1057,7 +1057,7 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
             btrfs_snapshots_subvol = '@snapshots'
 
             if volume_config.compression:
-                mnt_opts.extend(f'compress={volume_config.compression}')
+                mnt_opts.append(f'compress={volume_config.compression}')
             # --
 
             if mnt_opts_btrfs:
