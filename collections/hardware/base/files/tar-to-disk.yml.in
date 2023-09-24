@@ -35,6 +35,7 @@ volumes:
     size:     '@@ROOTFS_SIZE@@'
     fstype:   '@@ROOTFS_FSTYPE@@'
     fs_uuid:  '@@ROOTFS_UUID@@'
+    compression:  '@@ROOTFS_COMPRESSION@@'
 
   # swap (optional)
   - name:     'swap'

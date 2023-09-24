@@ -37,6 +37,12 @@ OCONF_HW_BOOT_SIZE*='1G'
 # choose from: btrfs, ext4
 OCONF_ROOTFS_TYPE='btrfs'
 
+# rootfs compression (btrfs only)
+# choose from: lzo, zstd:1, ...
+# Set to 'none' or leave empty to disable compression.
+# See also: https://gist.github.com/braindevices/fde49c6a8f6b9aaf563fb977562aafec
+OCONF_HW_ROOTFS_COMPRESSION*='lzo'
+
 # size of the rootfs logical volume
 OCONF_HW_ROOTFS_SIZE*='4G'
 

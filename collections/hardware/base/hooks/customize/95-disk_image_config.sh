@@ -39,6 +39,7 @@ set -- \
     -e "s=@@ROOTFS_SIZE@@=${OCONF_HW_ROOTFS_SIZE:?}=g" \
     -e "s=@@ROOTFS_FSTYPE@@=${OCONF_ROOTFS_TYPE:?}=g" \
     -e "s=@@ROOTFS_UUID@@=${rootfs_uuid:?}=g" \
+    -e "s=@@ROOTFS_COMPRESSION@@=${OCONF_HW_ROOTFS_COMPRESSION?}=g" \
     \
     -e "s=@@SWAP_SIZE@@=${OCONF_HW_SWAP_SIZE:?}=g" \
     -e "s=@@SWAP_ENABLED@@=${OFEAT_HW_SWAP:?}=g" \
