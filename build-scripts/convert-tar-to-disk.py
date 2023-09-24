@@ -197,7 +197,8 @@ class VolumeConfig:
     fstype      : FilesystemType
     fs_uuid     : str               # vfat has a reduced UUID
     volume_id   : Optional[str]     # for vfat
-# --- end of VolumeConfig
+    compression : Optional[str]     # currently only for btrfs
+# --- end of VolumeConfig ---
 
 
 @dataclass
@@ -638,6 +639,13 @@ def parse_disk_config(disk_config_data):
             return None
     # --- end of mkobj_volume_id (...) ---
 
+    def mkobj_volume_compression(arg_compression):
+        if not arg_compression or arg_compression.lower() in {'none', }:
+            return None
+        else:
+            return arg_compression
+    # --- end of mkobj_volume_compression (...) ---
+
     def mkobj_volume(arg_volume):
         name = arg_volume['name']
 
@@ -662,6 +670,7 @@ def parse_disk_config(disk_config_data):
             fstype      = fstype,
             fs_uuid     = fs_uuid,
             volume_id   = volume_id,
+            compression = mkobj_volume_compression(arg_volume.get('compression')),
         )
 
         return (name, volume)
@@ -1046,6 +1055,10 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
 
             btrfs_subvol = ('@rootfs' if is_rootfs else '@')
             btrfs_snapshots_subvol = '@snapshots'
+
+            if volume_config.compression:
+                mnt_opts.extend(f'compress={volume_config.compression}')
+            # --
 
             if mnt_opts_btrfs:
                 mnt_opts.extend(mnt_opts_btrfs)
