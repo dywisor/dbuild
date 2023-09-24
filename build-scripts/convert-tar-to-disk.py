@@ -1212,10 +1212,14 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
 
     env.run_as_admin(['mkdir', '-p', mount_root], check=True)
 
+    disk_img_parts = []
+
     with DJ(env) as dj:
         disk_layouts = collections.OrderedDict()
 
         disk_img_root   = outdir / 'root.img'
+        disk_img_parts.append(disk_img_root)
+
         root_part_esp   = None
         root_part_boot  = None
         root_part_swap  = None
@@ -1791,6 +1795,26 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
             env.run_as_admin_chroot(mount_root, ["/bin/bash", "-i"])
         # -- end if exec chroot?
     # -- end with
+
+    # tar it up
+    disk_img_tarball = outdir / 'dbuild-image.tar.zst'
+
+    cmdv = [
+        'tar', '-c', '--zstd',
+        '-f', str(disk_img_tarball),
+        '--sparse',
+        '-C', str(outdir),
+    ]
+
+    cmdv.extend((
+        disk_img_file.name
+        for disk_img_file in disk_img_parts
+    ))
+
+    env.run(cmdv, check=True)
+
+    for disk_img_file in disk_img_parts:
+        disk_img_file.unlink(missing_ok=False)  # file should exist at this point
 # --- end of main_create_disk_image (...) ---
 
 
