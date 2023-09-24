@@ -1465,6 +1465,7 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
         env.run_as_admin(
             [
                 'tar', '-xap',
+                '--xattrs-include=*.*',
                 '-f', rootfs_tarball_filepath,
                 '-C', mount_root,
                 './'
