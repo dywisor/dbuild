@@ -1109,7 +1109,12 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
             fstab_entries.append(
                 (
                     volume_config,
-                    (blk_dev, 'none', 'swap', 'sw,nofail')
+                    MountEntry(
+                        mnt_fsname=blk_dev,
+                        mnt_dir='none',
+                        mnt_type='swap',
+                        mnt_opts='sw,nofail',
+                    )
                 )
             )
 
