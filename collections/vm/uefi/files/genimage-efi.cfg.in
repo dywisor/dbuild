@@ -27,12 +27,13 @@ image rootfs.ext4 {
 image rootfs.img {
     hdimage {
         partition-table-type = "gpt"
+        align = 4096
     }
 
     partition boot {
         partition-type-uuid = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
         bootable = true
-        offset = 32768
+        offset = 1048576
         partition-uuid = "@@ESP_PARTUUID@@"
 
         image = "efi-part.vfat"
