@@ -175,7 +175,7 @@ write_to_file() {
     fi
 
     dofile "${outfile}" "${mode}" "${owner}" "${@}" || \
-        die "Failed to write ${1:?}"
+        die "Failed to write ${outfile:?}"
 }
 
 # @autodie @stdin target_write_to_file ( outfile_relpath, [mode], [owner], [cmdv...] )
