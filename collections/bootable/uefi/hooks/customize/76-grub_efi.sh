@@ -70,3 +70,8 @@ search.fs_uuid ${boot_fs_uuid} root
 set prefix=(\$root)'${boot_fs_prefix}/grub'
 configfile \$prefix/grub.cfg
 EOF
+
+# In certain situations, the chainload grub.cfg
+# needs to be present in the removable path as well.
+# (Observed in recent Debian 12 builds.)
+autodie install -m 0600 -- "${target_esp_debian}/grub.cfg" "${target_esp_boot}/grub.cfg"
