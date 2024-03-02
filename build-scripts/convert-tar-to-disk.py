@@ -163,6 +163,17 @@ class FilesystemType(enum.IntEnum):
 # --- end of FilesystemType ---
 
 
+# backwards compat for config w/o mnt_dir
+DEFAULT_MNT_DIR_MAP = {
+    'boot'  : '/boot',
+    'esp'   : '/boot/efi',
+    'root'  : '/',
+    'swap'  : None,
+    'log'   : '/var/log',
+    'apt'   : '/var/cache/apt',
+}
+
+
 @dataclass
 class MDADMConfig:
     enabled         : bool
@@ -191,13 +202,27 @@ class LUKSConfig:
 
 @dataclass
 class VolumeConfig:
+    order       : int
     enabled     : bool
     label       : str
     size        : str
     fstype      : FilesystemType
-    fs_uuid     : str               # vfat has a reduced UUID
-    volume_id   : Optional[str]     # for vfat
-    compression : Optional[str]     # currently only for btrfs
+    mnt_dir     : Optional[str]         # may be None if not mounted (or swap)
+    mnt_opts    : Optional[list[str]]   # may be None if not mounted
+    fs_uuid     : str                   # vfat has a reduced UUID
+    volume_id   : Optional[str]         # for vfat
+    compression : Optional[str]         # currently only for btrfs
+    is_lvm_lv   : bool                  # runtime-only (STUB for parent layer)
+    is_rootfs   : bool                  # runtime-only
+
+    def get_mnt_dir_abs(self, mount_root):
+        if self.is_rootfs:
+            return mount_root
+        else:
+            mnt_dir = self.mnt_dir
+            return ((mount_root / mnt_dir) if mnt_dir else None)
+    # --- end of get_mnt_dir_abs (...) ---
+
 # --- end of VolumeConfig ---
 
 
@@ -210,7 +235,8 @@ class SimpleDiskConfig:
     disk_size_root  : str
     boot_type       : BootType
     snapper         : bool
-    volumes         : dict[str, VolumeConfig]
+    disk_volumes    : dict[str, VolumeConfig]
+    root_vg_volumes : dict[str, VolumeConfig]
 # --- end of SimpleDiskConfig ---
 
 
@@ -646,7 +672,76 @@ def parse_disk_config(disk_config_data):
             return arg_compression
     # --- end of mkobj_volume_compression (...) ---
 
-    def mkobj_volume(arg_volume):
+    def mkobj_volume_mnt_opts(arg_mnt_opts):
+        if not arg_mnt_opts:
+            return None
+
+        elif isinstance(arg_mnt_opts, str):
+            # STUB TODO/LATER: split arg_mnt_opts?
+            return [arg_mnt_opts]
+
+        elif hasattr(arg_mnt_opts, '__iter__') or hasattr(arg_mnt_opts, '__next__'):
+            return list(arg_mnt_opts)
+
+        else:
+            raise ValueError(arg_mnt_opts)
+    # --- end of mkobj_volume_mnt_opts (...) ---
+
+    def mkobj_volume_default_mnt_dir(name, fstype, *, _default_mnt_dir_map=DEFAULT_MNT_DIR_MAP):
+        # backwards-compat for old config w/o mnt_dir
+        try:
+            return _default_mnt_dir_map[name]
+
+        except KeyError:
+            if fstype in {FilesystemType.SWAP, }:
+                return None
+            else:
+                raise KeyError("no default mnt_dir for volume", name, fstype)
+    # --- end of mkobj_volume_default_mnt_dir (...) ---
+
+    def mkobj_volume_default_mnt_opts(name, fstype, mnt_dir):
+        def mnt_tree_match(root, mnt_dir):
+            return (mnt_dir == root or mnt_dir.startswith(f'{root}/'))
+
+        if fstype == FilesystemType.SWAP:
+            return ['sw,nofail']
+
+        elif name == 'root':
+            mnt_opts = ['defaults', 'rw', 'relatime']
+
+            if fstype == FilesystemType.EXT4:
+                mnt_opts.extend(['user_xattr', 'errors=remount-ro'])
+
+            return mnt_opts
+
+        elif name == 'esp':
+            return ['defaults', 'rw', 'noatime', 'umask=0077']
+
+        elif name == 'boot':
+            return ['defaults', 'rw', 'noatime', 'nodev', 'nosuid']
+
+        elif any((
+            mnt_tree_match(p, mnt_dir)
+            for p in ['/proc', '/sys', '/dev', '/tmp', '/var/tmp']
+        )):
+            raise AssertionError('should not be a volume', mnt_dir)
+
+        elif mnt_tree_match('/usr', mnt_dir):
+            return ['defaults', 'rw', 'relatime', 'nodev', 'nosuid']
+
+        else:
+            if any((
+                mnt_tree_match(p, mnt_dir)
+                for p in ['/var/log', '/var/cache']
+            )):
+                mnt_opt_atime = 'noatime'
+            else:
+                mnt_opt_atime = 'relatime'
+
+            return ['defaults', 'rw', mnt_opt_atime, 'nodev', 'nosuid', 'noexec']
+    # --- end of mkobj_volume_default_mnt_opts (...) ---
+
+    def mkobj_volume(order, arg_volume):
         name = arg_volume['name']
 
         if not name:
@@ -662,35 +757,83 @@ def parse_disk_config(disk_config_data):
         fstype      = mkobj_fstype(arg_fstype)
         fs_uuid     = arg_volume.get('fs_uuid') or mkobj_default_uuid(fstype)
         volume_id   = mkobj_volume_id(fstype, fs_uuid)
+        is_rootfs   = (name == 'root')
+
+        # TODO/LATER: hardcoded for now
+        # Should accept arbitrary disk layers as parent here
+        # (partition/disk, raid, luks, vg)
+        if (
+            (name in {'esp', 'boot', 'swap'})
+            or (fstype in {FilesystemType.SWAP, })
+        ):
+            is_lvm_lv = False
+
+        else:
+            is_lvm_lv = True
+
+        try:
+            mnt_dir = arg_volume['mnt_dir']
+        except KeyError:
+            mnt_dir = mkobj_volume_default_mnt_dir(name, fstype)
+
+        if bool(is_rootfs) != bool(mnt_dir == '/'):
+            raise ValueError("is_rootfs <=> mnt_dir", is_rootfs, mnt_dir)
+
+        mnt_opts = mkobj_volume_mnt_opts(arg_volume.get('mnt_opts'))
+        if not mnt_opts:
+            mnt_opts = mkobj_volume_default_mnt_opts(name, fstype, mnt_dir)
+
+        label = arg_volume.get('label') or name
+        if fstype == FilesystemType.VFAT:
+            # does not fully support lowercase labels
+            label = label.upper()
 
         volume = VolumeConfig(
+            order       = order,
             enabled     = mkobj_bool(arg_volume.get('enabled'), True),
-            label       = (arg_volume.get('label') or name),
+            label       = label,
             size        = arg_volume['size'],
             fstype      = fstype,
             fs_uuid     = fs_uuid,
+            mnt_dir     = mnt_dir,
+            mnt_opts    = mnt_opts,
             volume_id   = volume_id,
             compression = mkobj_volume_compression(arg_volume.get('compression')),
+            is_lvm_lv   = is_lvm_lv,
+            is_rootfs   = is_rootfs,
         )
 
         return (name, volume)
     # --- end of mkobj_volume (...) ---
 
     def mkobj_volumes(arg_volumes):
-        volumes = dict((mkobj_volume(arg_volume) for arg_volume in arg_volumes))
+        disk_volumes = {}
+        root_vg_volumes = {}
 
-        return volumes
+        for order, arg_volume in enumerate(arg_volumes):
+            name, volume = mkobj_volume(order, arg_volume)
+
+            if volume.is_lvm_lv:
+                root_vg_volumes[name] = volume
+            else:
+                disk_volumes[name] = volume
+
+        return (disk_volumes, root_vg_volumes)
     # --- end of mkobj_volumes (...) ---
 
+    (disk_volumes, root_vg_volumes) = mkobj_volumes(dict_chain_get(disk_config_data, ['volumes'], None))
+
+
     disk_config = SimpleDiskConfig(
-        boot_raid      = mkobj_mdadm_config(dict_chain_get(disk_config_data, ['boot_raid'], None)),
-        root_vg_name   = dict_chain_get(disk_config_data, ['root_vg_name'], 'vg0'),
-        root_vg_raid   = mkobj_mdadm_config(dict_chain_get(disk_config_data, ['root_vg_raid'], None)),
-        root_vg_luks   = mkobj_luks_config(dict_chain_get(disk_config_data, ['root_vg_luks'], None), 'root_pv_crypt'),
-        disk_size_root = dict_chain_get(disk_config_data, ['disk_size_root'], '10G'),
-        boot_type      = mkobj_boot_type(dict_chain_get(disk_config_data, ['boot_type'], 'bios')),
-        snapper        = mkobj_bool(disk_config_data.get('snapper'), True),
-        volumes        = mkobj_volumes(dict_chain_get(disk_config_data, ['volumes'], None)),
+        boot_raid       = mkobj_mdadm_config(dict_chain_get(disk_config_data, ['boot_raid'], None)),
+        root_vg_name    = dict_chain_get(disk_config_data, ['root_vg_name'], 'vg0'),
+        root_vg_raid    = mkobj_mdadm_config(dict_chain_get(disk_config_data, ['root_vg_raid'], None)),
+        root_vg_luks    = mkobj_luks_config(dict_chain_get(disk_config_data, ['root_vg_luks'], None), 'root_pv_crypt'),
+        disk_size_root  = dict_chain_get(disk_config_data, ['disk_size_root'], '10G'),
+        boot_type       = mkobj_boot_type(dict_chain_get(disk_config_data, ['boot_type'], 'bios')),
+        snapper         = mkobj_bool(disk_config_data.get('snapper'), True),
+        disk_volumes    = disk_volumes,
+        root_vg_volumes = root_vg_volumes,
     )
 
     # sanity checks:
@@ -707,44 +850,30 @@ def parse_disk_config(disk_config_data):
     #     - must have a passphrase
     #     - integrity_alg can only be set if LUKS type is 'luks2'
 
-    def mkobj_luks_config(arg_luks):
-        if arg_luks:
-            arg_luks = {}
-        # --
-
-        luks_type = arg_luks.get('luks_type') or 'luks2'
-        luks_uuid = arg_luks.get('luks_uuid') or mkobj_default_uuid()
-
-        return LUKSConfig(
-            enabled         = mkobj_bool(arg_luks.get('enabled'), True),
-            luks_uuid       = luks_uuid,
-            passphrase      = arg_luks.get('passphrase', ''),
-            luks_type       = luks_type,
-            hash_alg        = arg_luks.get('hash', None),
-            cipher          = arg_luks.get('cipher', None),
-            key_size        = mkobj_int(arg_luks.get('key_size'), None),
-            integrity_alg   = arg_luks.get('integrity', None),
-        )
-
     errors = []
 
     missing_volumes = []
-    for volume_name in ['root', 'boot']:
+
+    musthave_disk_volumes = ['boot']
+    musthave_root_vg_volumes = ['root']
+
+    if disk_config.boot_type == BootType.UEFI:
+        musthave_disk_volumes.append('esp')
+
+    for volume_name in musthave_disk_volumes:
         if (
-            (volume_name not in disk_config.volumes)
-            or (not disk_config.volumes[volume_name].enabled)
+            (volume_name not in disk_config.disk_volumes)
+            or (not disk_config.disk_volumes[volume_name].enabled)
         ):
             missing_volumes.append(volume_name)
     # --
 
-    if disk_config.boot_type == BootType.UEFI:
-        for volume_name in ['esp']:
-            if (
-                (volume_name not in disk_config.volumes)
-                or (not disk_config.volumes[volume_name].enabled)
-            ):
-                missing_volumes.append(volume_name)
-        # --
+    for volume_name in musthave_root_vg_volumes:
+        if (
+            (volume_name not in disk_config.root_vg_volumes)
+            or (not disk_config.root_vg_volumes[volume_name].enabled)
+        ):
+            missing_volumes.append(volume_name)
     # --
 
     if disk_config.root_vg_luks.enabled:
@@ -1008,23 +1137,13 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
         )
     # --- end of mkfs_vfat (...) ---
 
-    def init_fs(
-        dj, fstab_entries, volume_config, blk_dev, mnt_dir,
-        mnt_opts_base=None,
-        mnt_opts_ext4=None,
-        mnt_opts_btrfs=None,
-        mnt_opts_vfat=None,
-    ):
-        is_rootfs = (mnt_dir is None)
+    def init_fs(dj, fstab_entries, volume_config, blk_dev):
+        mnt_dir = volume_config.mnt_dir
+        is_rootfs = volume_config.is_rootfs
 
         fstype_str = None
 
-        if mnt_opts_base:
-            mnt_opts = list(mnt_opts_base)
-        else:
-            mnt_opts =  ['defaults', 'rw', 'relatime']
-        # --
-
+        mnt_opts = list(volume_config.mnt_opts)  # shallow copy
         mnt_opts_snapshot = None
 
         if volume_config.fstype == FilesystemType.EXT4:
@@ -1036,19 +1155,10 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
                 error_behavior=('remount-ro' if is_rootfs else 'continue')
             )
 
-            if mnt_opts_ext4:
-                mnt_opts.extend(mnt_opts_ext4)
-            # --
-
-            if is_rootfs:
-                mnt_opts.append('errors=remount-ro')
-            # --
-
-
         elif volume_config.fstype == FilesystemType.BTRFS:
             fstype_str = 'btrfs'
 
-            if mnt_dir is False:
+            if not mnt_dir:
                 # low-prio FIXME: fixable using a temporary directory
                 raise NotImplementedError('cannot create subvol on no-mount filesystem')
             # --
@@ -1058,10 +1168,6 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
 
             if volume_config.compression:
                 mnt_opts.append(f'compress={volume_config.compression}')
-            # --
-
-            if mnt_opts_btrfs:
-                mnt_opts.extend(mnt_opts_btrfs)
             # --
 
             mkfs_btrfs(volume_config, blk_dev)
@@ -1126,7 +1232,7 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
                         mnt_fsname=blk_dev,
                         mnt_dir='none',
                         mnt_type='swap',
-                        mnt_opts='sw,nofail',
+                        mnt_opts=mnt_opts,
                     )
                 )
             )
@@ -1139,15 +1245,11 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
 
             mkfs_vfat(volume_config, blk_dev)
 
-            if mnt_opts_vfat:
-                mnt_opts.extend(mnt_opts_vfat)
-            # --
-
         else:
             raise NotImplementedError('fstype', volume_config)
         # --
 
-        if mnt_dir is not False:
+        if mnt_dir:
             assert fstype_str
 
             (mp, mnt_entry) = dj.mount_open(
@@ -1254,17 +1356,17 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
             # boot partition
             disk_layout.append(
                 'size={boot_size}, type=linux, bootable'.format(
-                    boot_size=disk_config.volumes['boot'].size
+                    boot_size=disk_config.disk_volumes['boot'].size
                 )
             )
             root_part_boot = part_no
             part_no += 1
 
             # swap partition (optional)
-            if 'swap' in disk_config.volumes and disk_config.volumes['swap'].enabled:
+            if 'swap' in disk_config.disk_volumes and disk_config.disk_volumes['swap'].enabled:
                 disk_layout.append(
                     'size={swap_size}, type=swap'.format(
-                        swap_size=disk_config.volumes['swap'].size
+                        swap_size=disk_config.disk_volumes['swap'].size
                     )
                 )
                 root_part_swap = part_no
@@ -1288,7 +1390,7 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
             # ESP
             disk_layout.append(
                 'size={esp_size}, type=uefi, name=ESP'.format(
-                    esp_size=disk_config.volumes['esp'].size
+                    esp_size=disk_config.disk_volumes['esp'].size
                 )
             )
             root_part_esp = part_no
@@ -1297,17 +1399,17 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
             # boot partition
             disk_layout.append(
                 'size={boot_size}, type=linux, name=BOOT'.format(
-                    boot_size=disk_config.volumes['boot'].size
+                    boot_size=disk_config.disk_volumes['boot'].size
                 )
             )
             root_part_boot = part_no
             part_no += 1
 
             # swap partition (optional)
-            if 'swap' in disk_config.volumes and disk_config.volumes['swap'].enabled:
+            if 'swap' in disk_config.disk_volumes and disk_config.disk_volumes['swap'].enabled:
                 disk_layout.append(
                     'size={swap_size}, type=swap, name=SWAP'.format(
-                        swap_size=disk_config.volumes['swap'].size
+                        swap_size=disk_config.disk_volumes['swap'].size
                     )
                 )
                 root_part_swap = part_no
@@ -1402,7 +1504,7 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
 
         #> initialize filesystems (create LV ifneedbe, mkfs, mount)
         ##> initialize rootfs LV
-        volume_config = disk_config.volumes['root']
+        volume_config = disk_config.root_vg_volumes['root']
         blk_dev = f'{root_vg}-root'
 
         env.run_as_admin(
@@ -1410,19 +1512,13 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
             check=True
         )
 
-        init_fs(
-            dj, fstab_entries, volume_config, blk_dev, None,
-            mnt_opts_ext4=['user_xattr'],
-        )
+        init_fs(dj, fstab_entries, volume_config, blk_dev)
 
         ##> initialize boot partition/fs/mount
-        volume_config = disk_config.volumes['boot']
+        volume_config = disk_config.disk_volumes['boot']
         blk_dev = None  # unset previous blk_dev, using boot_dev instead
 
-        init_fs(
-            dj, fstab_entries, volume_config, boot_dev, 'boot',
-            mnt_opts_base=['defaults', 'rw', 'noatime', 'nodev', 'nosuid']
-        )
+        init_fs(dj, fstab_entries, volume_config, boot_dev)
 
         ##> initialize EFI System Partition (ESP)
         if disk_config.boot_type == BootType.UEFI:
@@ -1430,17 +1526,14 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
                 raise AssertionError("esp partition requested but not allocated")
             # --
 
-            volume_config = disk_config.volumes.get('esp')
+            volume_config = disk_config.disk_volumes.get('esp')
             blk_dev = f'{loop_dev_root}p{root_part_esp}'
 
-            init_fs(
-                dj, fstab_entries, volume_config, blk_dev, 'boot/efi',
-                mnt_opts_vfat=['umask=0077']
-            )
+            init_fs(dj, fstab_entries, volume_config, blk_dev)
         # -- end if EFI System Partition (ESP)
 
         ##> initialize swap space (but do not use it here)
-        volume_config = disk_config.volumes.get('swap', None)
+        volume_config = disk_config.disk_volumes.get('swap', None)
         if volume_config and volume_config.enabled:
             blk_dev = f'{loop_dev_root}p{root_part_swap}'
 
@@ -1448,40 +1541,26 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
                 raise AssertionError("swap partition requested but not allocated")
             # --
 
-            init_fs(dj, fstab_entries, volume_config, blk_dev, False)
+            init_fs(dj, fstab_entries, volume_config, blk_dev)
         # -- end if
 
-        ##> initialize log LV (optional)
-        volume_config = disk_config.volumes.get('log', None)
-        if volume_config and volume_config.enabled:
-            blk_dev = f'{root_vg}-log'
+        ##> initialize additional LV (optional)
+        for name, volume_config in sorted(
+            filter(
+                lambda kv: (kv[0] != 'root' and kv[1].enabled),
+                disk_config.root_vg_volumes.items()
+            ),
+            key=lambda kv: kv[1].order
+        ):
+            blk_dev = f'{root_vg}-{name}'
 
             env.run_as_admin(
-                ['lvcreate', '-L', volume_config.size, '-n', 'log', disk_config.root_vg_name],
+                ['lvcreate', '-L', volume_config.size, '-n', name, disk_config.root_vg_name],
                 check=True
             )
 
-            init_fs(
-                dj, fstab_entries, volume_config, blk_dev, 'var/log',
-                mnt_opts_base=['defaults', 'rw', 'noatime', 'nodev', 'noexec', 'nosuid']
-            )
-        # -- end if
-
-        ##> initialize apt cache LV (optional)
-        volume_config = disk_config.volumes.get('apt', None)
-        if volume_config and volume_config.enabled:
-            blk_dev = f'{root_vg}-apt'
-
-            env.run_as_admin(
-                ['lvcreate', '-L', volume_config.size, '-n', 'apt', disk_config.root_vg_name],
-                check=True
-            )
-
-            init_fs(
-                dj, fstab_entries, volume_config, blk_dev, 'var/cache/apt',
-                mnt_opts_base=['defaults', 'rw', 'noatime', 'nodev', 'noexec', 'nosuid']
-            )
-        # -- end if
+            init_fs(dj, fstab_entries, volume_config, blk_dev)
+        # -- end for
 
         #> unpack rootfs tarball to mounted fs tree
         env.run_as_admin(
@@ -1665,8 +1744,11 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
         ]
 
         fstab_lines = [
-            'UUID={fs_uuid} {mnt_dir} {mnt_type} {mnt_opts} 0 {mnt_passno}'.format(
-                fs_uuid=volume_config.fs_uuid,
+            '{mnt_fsname} {mnt_dir} {mnt_type} {mnt_opts} 0 {mnt_passno}'.format(
+                mnt_fsname=(
+                    mnt_ent.mnt_fsname if volume_config.is_lvm_lv
+                    else f'UUID={volume_config.fs_uuid}'
+                ),
                 mnt_dir=mnt_ent.mnt_dir,
                 mnt_type=mnt_ent.mnt_type,
                 mnt_opts=mnt_ent.mnt_opts,
@@ -1674,7 +1756,7 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
                 # then use passno 1 for rootfs and 2 for everything else
                 mnt_passno=(
                     0 if mnt_ent.mnt_type not in {'ext4'}
-                    else (1 if mnt_ent.mnt_dir == '/' else 2)
+                    else (1 if volume_config.is_rootfs else 2)
                 )
             )
             for volume_config, mnt_ent in fstab_entries
@@ -1755,18 +1837,19 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
             # NOTE/FIXME MAYBE: snapper gets automatically disabled if not found
 
             if target_have_snapper:
-                for volume_name, snapper_config_name, mnt_dir_rel in [
-                    ('root', None, None),
+                for volume_name, snapper_config_name in [
+                    ('root', None),
                 ]:
                     if snapper_config_name is None:
                         snapper_config_name = volume_name
 
-                    mnt_dir_abs = (mount_root if mnt_dir_rel is None else (mount_root / mnt_dir_rel))
-                    snapshots_dir_abs = (mnt_dir_abs / '.snapshots')
 
                     # skip non-existing and non-btrfs volumes
-                    volume_config = disk_config.volumes.get(volume_name, None)
+                    volume_config = disk_config.root_vg_volumes.get(volume_name, None)
                     if volume_config and volume_config.fstype == FilesystemType.BTRFS:
+                        mnt_dir_abs = volume_config.get_mnt_dir_abs(mount_root)
+                        snapshots_dir_abs = (mnt_dir_abs / '.snapshots')
+
                         # snapper wants to create its own subvolume.
                         # So, remove the existing .snapshots mountpoint
                         # (not mounted here),let snapper create the subvolume
@@ -1783,7 +1866,7 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
                                 'snapper', '--no-dbus',
                                 '-c', snapper_config_name,
                                 'create-config', '--fstype', 'btrfs',
-                                (f'/{mnt_dir_rel}' if mnt_dir_rel else '/')
+                                volume_config.mnt_dir,
                             ],
                             check=True
                         )
