@@ -14,6 +14,11 @@
 # -- HARDCODED, OPTION NOT IMPLEMENTED --
 OFEAT_SEPARATE_BOOT=1
 
+# do not generate filesystem UUIDs,
+# this will be done by convert-tar-to-disk
+# -- HARDCODED, do not change --
+OFEAT_GEN_FS_UUID=0
+
 # size of the disk containing the boot,
 # swap and rootfs LVM/PV partition(s)
 #

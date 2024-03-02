@@ -21,7 +21,6 @@ volumes:
   - name:     'boot'
     size:     '@@BOOT_SIZE@@'
     fstype:   'ext4'
-    fs_uuid:  '@@BOOT_UUID@@'
 
   # EFI system partition (ESP),
   # only needed for UEFI-type hardware
@@ -34,7 +33,6 @@ volumes:
   - name:     'root'
     size:     '@@ROOTFS_SIZE@@'
     fstype:   '@@ROOTFS_FSTYPE@@'
-    fs_uuid:  '@@ROOTFS_UUID@@'
     compression:  '@@ROOTFS_COMPRESSION@@'
 
   # swap (optional)

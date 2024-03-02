@@ -8,6 +8,10 @@ OFEAT_IFNAMES=0
 # System Configuration
 # --------------------
 
+# generate filesystem UUIDs
+# -- HARDCODED, do not change --
+OFEAT_GEN_FS_UUID=1
+
 # Whether to create a swap drive for the VM image
 OFEAT_VM_SWAP*=1
 OCONF_VM_SWAP_SIZE*='512M'

@@ -1,13 +1,5 @@
 #!/bin/sh
 
-rootfs_uuid=
-read -r rootfs_uuid < "${DBUILD_STAGING_TMP:?}/uuid.rootfs" \
-    && [ -n "${rootfs_uuid}" ] || die "Failed to read rootfs uuid"
-
-boot_uuid=
-read -r boot_uuid < "${DBUILD_STAGING_TMP:?}/uuid.boot" \
-    && [ -n "${boot_uuid}" ] || die "Failed to read boot uuid"
-
 diskimage_config="${DBUILD_STAGING_TMP:?}/diskimage-efi.cfg"
 diskimage_config_template="${HOOK_FILESDIR:?}/tar-to-disk.yml.in"
 
@@ -31,14 +23,12 @@ set -- \
     -e "s=@@ROOT_LUKS_PASSPHRASE@@=${OCONF_HW_ROOT_VG_LUKS_PASSPHRASE:?}=g" \
     \
     -e "s=@@BOOT_SIZE@@=${OCONF_HW_BOOT_SIZE:?}=g" \
-    -e "s=@@BOOT_UUID@@=${boot_uuid:?}=g" \
     \
     -e "s=@@ESP_SIZE@@=${OCONF_HW_ESP_SIZE:?}=g" \
     -e "s=@@ESP_ENABLED@@=${esp_enabled:?}=g" \
     \
     -e "s=@@ROOTFS_SIZE@@=${OCONF_HW_ROOTFS_SIZE:?}=g" \
     -e "s=@@ROOTFS_FSTYPE@@=${OCONF_ROOTFS_TYPE:?}=g" \
-    -e "s=@@ROOTFS_UUID@@=${rootfs_uuid:?}=g" \
     -e "s=@@ROOTFS_COMPRESSION@@=${OCONF_HW_ROOTFS_COMPRESSION?}=g" \
     \
     -e "s=@@SWAP_SIZE@@=${OCONF_HW_SWAP_SIZE:?}=g" \
