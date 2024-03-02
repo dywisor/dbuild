@@ -13,6 +13,7 @@ import enum
 import itertools
 import os
 import pathlib
+import re
 import shlex
 import subprocess
 import sys
@@ -1319,6 +1320,41 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
         # --
     # --- end of write_text_file (...) ---
 
+    def rewrite_vars_in_text_file(filepath, vars_map, **write_kwargs):
+        def repl_var(match_obj):
+            return vars_map[match_obj.group('name')]
+
+        try:
+            with open(filepath, 'rt') as fh:
+                file_data = fh.read()
+
+        except IOError:
+            # read file as admin
+            proc = env.run_as_admin(
+                ['cat', '--', filepath],
+                check=True,
+                stdout=subprocess.PIPE
+            )
+
+            file_data = proc.stdout.decode('utf-8')
+        # --
+
+        re_varsub = re.compile(
+            r'@@(?P<name>{})@@'.format('|'.join(map(re.escape, sorted(vars_map))))
+        )
+
+        out_file_data = re_varsub.sub(repl_var, file_data)
+
+        # add newline at EOF if missing
+        if not out_file_data:
+            out_file_data = '\n'
+        elif out_file_data[-1] != '\n':
+            out_file_data += '\n'
+
+        # NOTE: writing to file even if nothing changed
+        write_text_file(filepath, out_file_data, **write_kwargs)
+    # --- end of rewrite_vars_in_text_file (...) ---
+
     # mdadm_devices : build-time dev => target dev
     mdadm_devices = collections.OrderedDict()
     fstab_entries = []
@@ -1789,6 +1825,25 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
         # --
 
         write_text_file((mount_root / 'etc/fstab'), fstab_lines)
+
+        # rewrite fs UUID in boot files:
+        # * /boot/grub.cfg (always)
+        # * /boot/efi/EFI/{boot,debian}/grub.cfg  [UEFI only]
+        print("rewrite fs UUID in boot files")
+        rewrite_fs_uuid_files = ['/boot/grub/grub.cfg']
+        if disk_config.boot_type == BootType.UEFI:
+            rewrite_fs_uuid_files.append('/boot/efi/EFI/boot/grub.cfg')
+            rewrite_fs_uuid_files.append('/boot/efi/EFI/debian/grub.cfg')
+        # --
+
+        rewrite_fs_uuid_map = {
+            'BOOT_FS_UUID'  : disk_config.disk_volumes['boot'].fs_uuid,
+            'ROOT_FS_UUID'  : disk_config.root_vg_volumes['root'].fs_uuid,
+        }
+
+        for filepath_rel in rewrite_fs_uuid_files:
+            filepath = mount_root / (filepath_rel.lstrip('/'))
+            rewrite_vars_in_text_file(filepath, rewrite_fs_uuid_map)
 
         #> update initramfs
         #  required because /etc/fstab has been modified
