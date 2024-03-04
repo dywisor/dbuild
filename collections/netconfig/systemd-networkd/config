@@ -1,0 +1,3 @@
+# network config
+OFEAT_NETCONFIG=1
+OCONF_NETCONFIG_PROVIDER='systemd-networkd'

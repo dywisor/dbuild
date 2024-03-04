@@ -385,22 +385,84 @@ OCONF_RESOLV_CONF_NS*='208.67.222.222 208.67.220.220'
 # (if OFEAT_RESOLV_CONF is set to 1)
 OCONF_RESOLV_CONF_SEARCH*=''
 
-# Automatically configure network interfaces on boot? (DHCP/SLAAC)
+# Network Interface Configuration
 #
-#  If OFEAT_IFNAMES is set to 1, then this will enable
-#  IPv4 DHCP / IPv6 autoconf on *all* interfaces of type ether.
-#
-#  If OFEAT_IFNAMES is set to 0, then only a single interface
-#  specified in OCONF_NETCONFIG_DHCP_IFACE will be configured.
+#  Allows to automatically configure one(!) ethernet interface.
+#  (but see multi-interface exception for systemd-networkd below.)
 #
 #  NOTE: This feature is not implemented in the base collection.
 #        Include the init-specific collection to enable it, e.g. systemd.
 #
-#  NOTE: This feature will implicitly install and enable a network manager
+#  NOTE: This feature may implicitly install and enable a network manager
 #        such as ifupdown2 or systemd-networkd.
 #
 #  NOTE: auto configuration may override other DNS or NTP configuration
 #        (OFEAT_RESOLV_CONF, ...)
 #
-OFEAT_NETCONFIG_DHCP*=0
-OCONF_NETCONFIG_DHCP_IFACE*='eth0'
+#  First, you need to enable network configuration and select
+#  an appropriate config provider by pulling in one of the networ
+#  config providers. See collections/netconfig/ for a list of th
+#  default config providers. Note, however, that this may
+#  further be restricted by your choice of init system.
+#
+#    DBUILD_TARGET_COLLECTIONS="... netconfig/systemd-networkd ..."
+#
+#  Internally, this will set two variables:
+#
+#    OFEAT_NETCONFIG=1
+#    OCONF_NETCONFIG_PROVIDER='<PROVIDER>'
+#
+#  Then, specify which interface should be configured.
+#  This can be done either by MAC address or interface name.
+#  MAC address takes precedence if both are set to a non-empty value.
+#
+#    OCONF_NETCONFIG_IFACE_BY_MAC=
+#    OCONF_NETCONFIG_IFACE_BY_NAME='eth0'
+#
+#  The systemd-networkd config provider also allows to set
+#  OCONF_NETCONFIG_IFACE_BY_NAME to an empty value (or asterisk),
+#  in which case all ethernet interfaces will be configured.
+#  Make sure not to mix this with interface renaming or static IP
+#  configuration unless you really expect to have only single eth interface.
+#
+#  You may also set a custom name for the interface,
+#  if the config provider supports it.
+#
+#    OCONF_NETCONFIG_IFACE_NAME='lan'
+#
+#  Then, select how the IP addresses should be configured.
+#  Depending on the config method,  additional options may be set,
+#  e.g. for static addressing. Note that mixing DHCP with static
+#  addressing may or may not be a good idea.
+#
+#    OFEAT_NETCONFIG_IP4=1                  # configure IPv4 address
+#    OFEAT_NETCONFIG_IP4_DHCP=1             # use DHCP
+#    OFEAT_NETCONFIG_IP4_STATIC=1           # and/or use static IPv4
+#    OCONF_NETCONFIG_IP4_STATIC='198.51.100.2/24'
+#    OCONF_NETCONFIG_IP4_STATIC_GW='198.51.100.1'
+#
+#    OFEAT_NETCONFIG_IP6=1                  # configure IPv6 address
+#    OFEAT_NETCONFIG_IP6_SLAAC=1            # use SLAAC
+#    OFEAT_NETCONFIG_IP6_DHCP6=1            # and/or use DHCPv6
+#    OFEAT_NETCONFIG_IP6_STATIC=1           # and/or use static IPv6
+#    OCONF_NETCONFIG_IP6_STATIC='2001:db8::2/64'
+#    OCONF_NETCONFIG_IP6_STATIC_GW='fe80::1'
+#
+OFEAT_NETCONFIG*=0
+OCONF_NETCONFIG_PROVIDER*=''
+OCONF_NETCONFIG_IFACE_BY_MAC*=''
+OCONF_NETCONFIG_IFACE_BY_NAME*='eth0'
+OCONF_NETCONFIG_IFACE_NAME*=''
+
+OFEAT_NETCONFIG_IP4*=1
+OFEAT_NETCONFIG_IP4_DHCP*=1
+OFEAT_NETCONFIG_IP4_STATIC*=0
+OCONF_NETCONFIG_IP4_STATIC*=''
+OCONF_NETCONFIG_IP4_STATIC_GW*=''
+
+OFEAT_NETCONFIG_IP6*=1
+OFEAT_NETCONFIG_IP6_DHCP*=0
+OFEAT_NETCONFIG_IP6_SLAAC*=1
+OFEAT_NETCONFIG_IP6_STATIC*=0
+OCONF_NETCONFIG_IP6_STATIC*=''
+OCONF_NETCONFIG_IP6_STATIC_GW*=''

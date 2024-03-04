@@ -1,5 +1,5 @@
 [collection]
 Virtual = true
-Depends = base systemd default
+Depends = base systemd netconfig/systemd-networkd default
   vm/base vm/hyper-v vm/uefi
   firstboot/base firstboot/systemd firstboot/vm

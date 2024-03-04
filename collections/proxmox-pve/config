@@ -5,4 +5,6 @@
 # Network Configuration
 # ---------------------
 
-OFEAT_NETCONFIG_DHCP=0
+# custom network configuration,
+# ifupdown2 not implemented yet
+OFEAT_NETCONFIG=0
