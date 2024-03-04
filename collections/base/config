@@ -385,6 +385,22 @@ OCONF_RESOLV_CONF_NS*='208.67.222.222 208.67.220.220'
 # (if OFEAT_RESOLV_CONF is set to 1)
 OCONF_RESOLV_CONF_SEARCH*=''
 
+# Whether to enable NTP (client) configuration
+#
+#   Set to 1 to enable, which will use chrony as NTP daemon.
+#
+#   Note: Do not enable for containers.
+#
+OFEAT_NTP_CONF*=0
+
+# List of upstream NTP pools and/or servers
+# (if OFEAT_NTP_CONF is set to 1)
+#
+#   May be empty, in which case the Debian defaults will be used.
+#
+OCONF_NTP_POOL*='pool.ntp.org'
+OCONF_NTP_SERVER*=''
+
 # Network Interface Configuration
 #
 #  Allows to automatically configure one(!) ethernet interface.

@@ -4,6 +4,10 @@ OFEAT_IFNAMES=0
 # /etc/resolv.conf is usually created when importing the container
 OFEAT_RESOLV_CONF=0
 
+# cannot set up ntp service reliably
+# (LXC-specific hacks not implemented)
+OFEAT_NTP_CONF=0
+
 # tmpfs mounts
 OFEAT_TMPFS_MOUNTS=1
 OCONF_TMPFS_DEV_SHM_SIZE='120m'

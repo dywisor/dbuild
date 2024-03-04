@@ -47,6 +47,11 @@ if [ "${OFEAT_HAVEGED:-0}" -eq 1 ]; then
     printf '%s\n' haveged
 fi
 
+# chrony ntp daemon
+if [ "${OFEAT_NTP_CONF:-0}" -eq 1 ]; then
+    printf '%s\n' chrony
+fi
+
 # kernel image
 if [ "${OFEAT_KERNEL_IMAGE:-0}" -eq 1 ]; then
     printf '%s\n' ${OCONF_KERNEL_IMAGE}  # noglob is set
