@@ -156,7 +156,14 @@ gen_networkd_network() {
 autodie dodir_mode "${TARGET_ROOTFS}/etc/systemd/network"
 
 conf_index='10'
-conf_name='eth'
+case "${OCONF_NETCONFIG_IFACE_BY_NAME-}" in
+    ''|*'*'*)
+        conf_name='eth'
+    ;;
+    *)
+        conf_name="${OCONF_NETCONFIG_IFACE_BY_NAME:?}"
+    ;;
+esac
 
 # create .link file if necessary
 if [ -n "${OCONF_NETCONFIG_IFACE_NAME-}" ]; then
