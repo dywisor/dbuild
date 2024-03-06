@@ -56,12 +56,16 @@ EOF
 gen_networkd_network() {
     local opt_dhcp4
     local opt_dhcp6
+    local opt_static4
+    local opt_static6
     local cfg_dhcp
     local cfg_ip6
     local cfg_ip6_slaac
 
     opt_dhcp4=0
     opt_dhcp6=0
+    opt_static4=0
+    opt_static6=0
     cfg_dhcp='no'
     cfg_ip6='no'
     cfg_ip6_slaac='no'
@@ -70,6 +74,10 @@ gen_networkd_network() {
         if feat_all "${OFEAT_NETCONFIG_IP4_DHCP:-0}"; then
             opt_dhcp4=1
         fi
+
+        if feat_all "${OFEAT_NETCONFIG_IP4_STATIC:-0}"; then
+            opt_static4=1
+        fi
     fi
 
     if feat_all "${OFEAT_NETCONFIG_IP6:-0}"; then
@@ -77,6 +85,10 @@ gen_networkd_network() {
 
         if feat_all "${OFEAT_NETCONFIG_IP6_DHCP:-0}"; then
             opt_dhcp6=1
+        fi
+
+        if feat_all "${OFEAT_NETCONFIG_IP6_STATIC:-0}"; then
+            opt_static6=1
         fi
 
         if feat_all "${OFEAT_NETCONFIG_IP6_SLAAC:-0}"; then
@@ -135,7 +147,7 @@ gen_networkd_network() {
         printf 'SendHostname            = no\n'
     fi
 
-    if feat_all "${OFEAT_NETCONFIG_IP4:-0}" "${OFEAT_NETCONFIG_IP4_STATIC:-0}"; then
+    if [ "${opt_static4}" -eq 1 ]; then
         gen_networkd_network_address "${OCONF_NETCONFIG_IP4_STATIC:?}"
 
         if [ -n "${OCONF_NETCONFIG_IP4_STATIC_GW-}" ]; then
@@ -143,7 +155,7 @@ gen_networkd_network() {
         fi
     fi
 
-    if feat_all "${OFEAT_NETCONFIG_IP6:-0}" "${OFEAT_NETCONFIG_IP6_STATIC:-0}"; then
+    if [ "${opt_static6}" -eq 1 ]; then
         gen_networkd_network_address "${OCONF_NETCONFIG_IP6_STATIC:?}"
 
         if [ -n "${OCONF_NETCONFIG_IP6_STATIC_GW-}" ]; then
