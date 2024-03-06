@@ -482,3 +482,63 @@ OFEAT_NETCONFIG_IP6_SLAAC*=1
 OFEAT_NETCONFIG_IP6_STATIC*=0
 OCONF_NETCONFIG_IP6_STATIC*=''
 OCONF_NETCONFIG_IP6_STATIC_GW*=''
+
+
+# Network Sinkhole Configuration
+#
+#   This will create routes for blocking traffic
+#   to certain unusual IP networks/addresses.
+#
+#   Enable this feature by setting OFEAT_NET_SINKHOLE=1
+#   and review or override the sinkhole routes selection
+#   (OFEAT_NET_SINKHOLE_ROUTES*, OCONF_NET_SINKHOLE_ROUTES_*).
+#
+#   If enabled, the following destinations will be blocked by default:
+#
+#     - OFEAT_NET_SINKHOLE_ROUTES_IP4_DOC
+#     - OFEAT_NET_SINKHOLE_ROUTES_IP4_BENCHMARK
+#     - OFEAT_NET_SINKHOLE_ROUTES_IP6_DOC
+#     - OFEAT_NET_SINKHOLE_ROUTES_IP6_BENCHMARK
+#     - OFEAT_NET_SINKHOLE_ROUTES_IP6_6TO4
+#
+#   ... which can be adjusted.
+#
+OFEAT_NET_SINKHOLE*=0
+
+# Name of the sinkhole interface
+#   (only used if the network config provider creates
+#   a dedicated interface, see OCONF_NETCONFIG_PROVIDER.)
+OCONF_NET_SINKHOLE_NAME*='sinkhole'
+
+# Select the sinkhole route type
+#   usually either blackhole, unreachable or prohibit
+OCONF_NET_SINKHOLE_ROUTE_TYPE*='unreachable'
+
+# Sinkhole routes selection
+# * IPv4
+# ** IPv4 documentation (TEST-NET-1/2/3)
+OFEAT_NET_SINKHOLE_ROUTES_IP4_DOC*=1
+# ** IPv4 carrier-grade NAT
+OFEAT_NET_SINKHOLE_ROUTES_IP4_CGNAT*=0
+# ** IPv4 DS-Lite
+OFEAT_NET_SINKHOLE_ROUTES_IP4_DSLITE*=0
+# ** IPv4 benchmark testing
+OFEAT_NET_SINKHOLE_ROUTES_IP4_BENCHMARK*=1
+# ** IPv4 private networks
+OFEAT_NET_SINKHOLE_ROUTES_IP4_RFC1918*=0
+# ** custom list of sinkhole IPv4 routes
+OCONF_NET_SINKHOLE_ROUTES_IP4_CUSTOM*=''
+
+# * IPv6
+# ** IPv6 documentation
+OFEAT_NET_SINKHOLE_ROUTES_IP6_DOC*=1
+# ** IPv6 unique local
+OFEAT_NET_SINKHOLE_ROUTES_IP6_ULA*=0
+# ** IPv6 Teredo
+OFEAT_NET_SINKHOLE_ROUTES_IP6_TEREDO*=0
+# ** IPv6 benchmark testing
+OFEAT_NET_SINKHOLE_ROUTES_IP6_BENCHMARK*=1
+# ** IPv6 6to4
+OFEAT_NET_SINKHOLE_ROUTES_IP6_6TO4*=1
+# ** custom list of sinkhole IPv6 routes
+OCONF_NET_SINKHOLE_ROUTES_IP6_CUSTOM*=''

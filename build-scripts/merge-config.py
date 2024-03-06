@@ -3,6 +3,7 @@
 
 import argparse
 import os
+import ipaddress
 import re
 import shlex
 import subprocess
@@ -36,7 +37,67 @@ def expand_config(vmap):
         # --
     # ---
 
+    def expand_config_net_sinkhole(vmap):
+        vmap_bool = lambda k, *, _vmap=vmap: (_vmap.get(k) == '1')
+
+        def build_routes(vmap, ip_version, config_routes_map):
+            if ip_version == 4:
+                network_cls = ipaddress.IPv4Network
+            elif ip_version == 6:
+                network_cls = ipaddress.IPv6Network
+            else:
+                raise NotImplementedError(ip_version)
+
+            accumulated_routes = set()
+            for varname_suffix, var_routes in config_routes_map.items():
+                varname = f"OFEAT_NET_SINKHOLE_ROUTES_IP{ip_version}_{varname_suffix}"
+                if vmap_bool(varname):
+                    accumulated_routes.update((network_cls(o) for o in var_routes))
+
+            var_routes = vmap.get(f"OCONF_NET_SINKHOLE_ROUTES_IP{ip_version}_CUSTOM")
+            if var_routes:
+                accumulated_routes.update((
+                    network_cls(o) for o in var_routes.strip().split() if o
+                ))
+
+            return ipaddress.collapse_addresses(accumulated_routes)
+        # --- end of build_routes (...) ---
+
+        def build_routes_str(*args, **kwargs):
+            return ' '.join(map(str, build_routes(*args, **kwargs)))
+
+        if vmap_bool('OFEAT_NET_SINKHOLE'):
+            vmap['OCONF_NET_SINKHOLE_ROUTES_IP4'] = build_routes_str(
+                vmap,
+                4,
+                {
+                    'DOC'       : ['192.0.2.0/24', '198.51.100.0/24', '203.0.113.0/24'],
+                    'CGNAT'     : ['100.64.0.0/10'],
+                    'DSLITE'    : ['192.0.0.0/24'],
+                    'BENCHMARK' : ['198.18.0.0/15'],
+                    'RFC1918'   : ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
+                }
+            )
+
+            vmap['OCONF_NET_SINKHOLE_ROUTES_IP6'] = build_routes_str(
+                vmap,
+                6,
+                {
+                    'DOC'       : ['2001:db8::/32'],
+                    'ULA'       : ['fc00::/7'],
+                    'TEREDO'    : ['2001:0000::/32'],
+                    'BENCHMARK' : ['2001:2::/48'],
+                    '6TO4'      : ['2002::/16'],
+                }
+            )
+
+        else:
+            vmap.pop('OFEAT_NET_SINKHOLE_ROUTES_IP4', None)
+            vmap.pop('OFEAT_NET_SINKHOLE_ROUTES_IP6', None)
+    # ---
+
     expand_config_pwvars(vmap)
+    expand_config_net_sinkhole(vmap)
 # --- end of expand_config (...) ---
 
 
