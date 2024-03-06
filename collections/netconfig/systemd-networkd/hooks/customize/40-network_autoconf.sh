@@ -130,6 +130,11 @@ gen_networkd_network() {
     printf '\n'
     printf '[Network]\n'
     printf 'Description             = %s\n' "default network"
+    if [ "${opt_static4}" -eq 1 ] || [ "${opt_static6}" -eq 1 ]; then
+        # always configure interface if it has a static IP
+        printf 'ConfigureWithoutCarrier = %s\n' "yes"
+        printf 'IgnoreCarrierLoss       = %s\n' "yes"
+    fi
     printf 'DHCP                    = %s\n' "${cfg_dhcp}"
     printf 'LinkLocalAddressing     = %s\n' "${cfg_ip6}"
     printf 'IPv6AcceptRA            = %s\n' "${cfg_ip6_slaac}"
