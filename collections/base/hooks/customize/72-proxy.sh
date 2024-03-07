@@ -25,6 +25,11 @@ hook_gen_web_proxy_env() {
     printf '%s=%s\n' 'http_proxy' "${OCONF_WEB_PROXY:?}"
 }
 
+hook_gen_web_proxy_env_local() {
+    printf '# proxy\n'
+    hook_gen_web_proxy_env
+}
+
 hook_gen_apt_proxy_env() {
     cat << EOF
 Acquire::http::Pipeline-Depth 0;
@@ -46,7 +51,7 @@ if feat_all "${OFEAT_WEB_PROXY_LOCAL_ENV:-0}"; then
     target_write_to_file \
         "/etc/local-env.d/proxy.sh" \
         "0644" "0:0" \
-        hook_gen_web_proxy_env
+        hook_gen_web_proxy_env_local
 fi
 
 # /etc/apt/apt.conf.d/99proxy
