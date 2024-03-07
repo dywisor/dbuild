@@ -44,7 +44,7 @@ if feat_all "${OFEAT_WEB_PROXY_LOCAL_ENV:-0}"; then
     print_action "Generate proxy config for /etc/local-env.d"
     autodie dodir_mode "${TARGET_ROOTFS:?}/etc/local-env.d"
     target_write_to_file \
-        "${TARGET_ROOTFS:?}/etc/local-env.d/proxy.sh" \
+        "/etc/local-env.d/proxy.sh" \
         "0644" "0:0" \
         hook_gen_web_proxy_env
 fi
@@ -54,7 +54,7 @@ if feat_all "${OFEAT_WEB_PROXY_APT:-0}"; then
     print_action "Generate proxy config for apt"
     autodie dodir_mode "${TARGET_ROOTFS:?}/etc/apt/apt.conf.d"
     target_write_to_file \
-        "${TARGET_ROOTFS:?}/etc/apt/apt.conf.d/99proxy" \
+        "/etc/apt/apt.conf.d/99proxy" \
         "0644" "0:0" \
         hook_gen_apt_proxy_env
 fi
