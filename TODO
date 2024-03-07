@@ -1,6 +1,3 @@
-* ALL
-  - mmdebstrap >= 0.8.0 (not in bullseye/stable): use --format=null
-
 * collections/kvm
   - initramfs first-boot hook
     - cloud-init?
