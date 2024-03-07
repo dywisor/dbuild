@@ -71,10 +71,7 @@ class RuntimeEnv(object):
         if self.mm_argv:
             cmdv.extend(self.mm_argv)
 
-        if target_format == TargetImageFormat.FMT_NULL:
-            cmdv.append('--format=tar')   # mmdebstrap < 0.8.0 compat FIXME
-        else:
-            cmdv.append(f'--format={target_format.value}')
+        cmdv.append(f'--format={target_format.value}')
 
         cmdv.append(self.vmap['DBUILD_TARGET_CODENAME'])
 
