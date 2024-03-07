@@ -401,6 +401,22 @@ OFEAT_NTP_CONF*=0
 OCONF_NTP_POOL*='pool.ntp.org'
 OCONF_NTP_SERVER*=''
 
+# Web Proxy Configuration
+# OFEAT_WEB_PROXY: write proxy config to /etc/environment?
+# OFEAT_WEB_PROXY_LOCAL_ENV: write proxy config to /etc/local-env.d/proxy.sh?
+OFEAT_WEB_PROXY*=0
+OFEAT_WEB_PROXY_LOCAL_ENV*=0
+
+# Web Proxy URL
+OCONF_WEB_PROXY*=''
+
+# Web Proxy bypass list
+OCONF_WEB_NO_PROXY*='localhost,127.0.0.1,::1'
+
+# Web Proxy for apt
+OFEAT_WEB_PROXY_APT*=0
+OCONF_WEB_PROXY_APT*=''
+
 # Network Interface Configuration
 #
 #  Allows to automatically configure one(!) ethernet interface.
