@@ -310,6 +310,11 @@ def main_init_staging_dir(cfg, staging_env):
     #> create merged configuration file
     config_files = []
 
+    defaults_config = cfg.project_root / 'defaults'
+    if defaults_config.is_file():
+        config_files.append(defaults_config)
+    # --
+
     for bcol_name, bcol_dir in cfg.profile_bcol.items():
         bcol_config = bcol_dir / 'config'
         if bcol_config.is_file():
