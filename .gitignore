@@ -1,6 +1,7 @@
 # ----------------------------------------------------------------------------
 
 # hide local files
+/defaults
 /local
 /collections/local
 /profiles/*
