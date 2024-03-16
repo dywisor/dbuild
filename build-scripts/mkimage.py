@@ -228,14 +228,8 @@ def main_gen_expand_build_collections(cfg, wanted):
                     # -- end if
                 # -- end if have collection meta config file
 
-                # virtual collections may pull in dependencies,
-                # but are ignored otherwise
-                # (This skips any collection dir related tasks
-                # such as copying files from overlay and executing hooks.)
-                if not bcol_is_virtual:
-                    collections_todo_queue.append((name, bcol_dir))
-                    collections_todo_dep[name] = dep_set
-                # -- end if
+                collections_todo_queue.append((name, bcol_dir, bcol_is_virtual))
+                collections_todo_dep[name] = dep_set
             # -- end if dependencies already scanned?
 
             collections_todo_scan = collections_todo_scan_next
@@ -258,7 +252,7 @@ def main_gen_expand_build_collections(cfg, wanted):
         resolved_any_dep = False
         collections_todo_queue_next = []
 
-        for name, bcol_dir in collections_todo_queue:
+        for name, bcol_dir, bcol_is_virtual in collections_todo_queue:
             if name not in collections_done:
                 dep = collections_todo_dep[name]
 
@@ -273,13 +267,18 @@ def main_gen_expand_build_collections(cfg, wanted):
                         other_dep_set.discard(name)
                     # --
 
-                    yield (name, bcol_dir)
+                    # virtual collections may pull in dependencies,
+                    # but are ignored otherwise
+                    # (This skips any collection dir related tasks
+                    # such as copying files from overlay and executing hooks.)
+                    if not bcol_is_virtual:
+                        yield (name, bcol_dir)
 
                     resolved_any_dep = True
 
                 else:
                     # -> not resolved (yet)
-                    collections_todo_queue_next.append((name, bcol_dir))
+                    collections_todo_queue_next.append((name, bcol_dir, bcol_is_virtual))
                 # -- end if
             # -- end if name not resolved yet (pre dep check)
         # -- end for
