@@ -57,12 +57,15 @@ Building VM images (KVM/Hyper-V/VMware) or Hardware images takes considerably lo
 Host Dependencies
 ------------------------------------------------------------------------
 
+- ``fakechroot``
+- ``fakeroot``
 - ``python3``
 - ``mmdebstrap``
 - GNU ``tar``
 - ``rsync``
 - ``systemctl`` (for systemd targets)
 - ``qemu-user`` (for cross-arch targets)
+- ``mkpasswd`` (``whois`` on Debian)
 - *optional*: genimage (for building disk images)
 
   See [pengutronix/genimage](https://github.com/pengutronix/genimage)
@@ -89,8 +92,9 @@ Host Dependencies
     - ``umount``
   - ``lvm2``
   - ``e2fsprogs``
+  - ``uuidgen`` (``uuid-runtime`` on Debian)
   - *optional*: ``btrfs-progs`` (for btrfs volumes)
-  - *optional*: ``dosfstools`` (for UEFI boot)
+  - *optional*: ``dosfstools``, ``mtools`` (for UEFI boot)
   - *optional*: ``mdadm``: (for RAID1)
   - *optional*: ``cryptsetup`` (for LUKS)
 
