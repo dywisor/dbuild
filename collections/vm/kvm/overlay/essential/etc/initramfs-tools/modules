@@ -25,3 +25,4 @@ virtio_net
 virtio_pci
 virtio_ring
 virtio_rng
+virtio_scsi
