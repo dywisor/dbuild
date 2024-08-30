@@ -15,6 +15,7 @@ ehci_hcd
 evdev
 ext4
 scsi_mod
+sd_mod
 uhci_hcd
 usb_common
 usbcore
