@@ -2,17 +2,20 @@
 #
 # Basic ruleset that installs the following filter chains:
 #
-#   chain input_ssh       -- SSH rules for the input chain
-#   chain input           -- allow ICMP, DHCP client, SSH; drop anything else
-#   chain output          -- allow ICMP, DHCP client, SSH, DNS/NTP, HTTP(S), acng; reject anything else
-#   chain forward         -- drop everything (except for stateful)
-#   chain global_stateful -- common helper for ct state
-#   chain global_icmp     -- common helper for ICMP(v6) ping/timex/unreach
+#   chain prerouting            -- block out-of-state, invalid packets
+#   chain input                 -- allow ICMP, DHCP client, SSH; drop anything else
+#   chain output                -- allow ICMP, DHCP client, SSH, DNS/NTP, HTTP(S), acng; reject anything else
+#   chain forward               -- drop everything (except for stateful)
+#   chain global_stateful       -- common helper for ct state
+#   chain global_out_of_state   -- common helper for dropping out-of-state packets
+#   chain global_ingress_block  -- common helper for dropping invalid packets
+#   chain global_icmp_local     -- common helper for ICMP essentials
+#   chain global_icmpv6_local   -- common helper for ICMPv6 essentials
 #
 # NOTE: Not relying on getent services lookup here
 #       and using hardcoded port numbers instead.
 
-flush ruleset
+flush ruleset;
 
 #> Defines
 
@@ -20,12 +23,20 @@ flush ruleset
 #> Ruleset
 table inet filter {
 
-    # You may wish to override the input_ssh section
-    # in order to restrict (initial) SSH to your own hosts.
-    chain input_ssh {
-        #ip saddr 198.51.100.1 tcp dport 22 accept;
-        #ip saddr @hosts_admin tcp dport 22 accept;
-        tcp dport 22 accept;
+    chain prerouting {
+        type filter hook prerouting priority -150;
+        policy accept;
+
+        #> skip on lo
+        iif lo accept;
+
+        #> drop out-of-state packets
+        jump global_out_of_state;
+
+        #> NOT IMPLEMENTED: drop source-spoofed packets
+
+        #> drop invalid
+        jump global_ingress_block;
     }
 
 
@@ -36,14 +47,17 @@ table inet filter {
         # skip on loopback
         iif lo accept;
 
+        # stateful
         jump global_stateful;
-        jump global_icmp;
 
         #> Essential communication
+        ##> ICMP essentials
+        jump global_icmp_local;
+        jump global_icmpv6_local;
 
-        ##> IPv6
-        ip6 nexthdr icmpv6 icmpv6 type nd-neighbor-advert accept;
-        ip6 nexthdr icmpv6 icmpv6 type nd-router-advert accept;
+        ##> ICMP Ping (rate-limit)
+        ip protocol icmp icmp type echo-request limit rate 5/second accept;
+        ip6 nexthdr icmpv6 icmpv6 type echo-request limit rate 5/second accept;
 
         ##> DHCPv4 client
         ip protocol udp udp sport 67 udp dport 68 accept;
@@ -54,7 +68,7 @@ table inet filter {
         #> Services
 
         ##> SSH
-        jump input_ssh;
+        tcp dport 22 accept;
 
         #> CLEANUP
         ##> drop broadcast/multicast silently
@@ -65,8 +79,6 @@ table inet filter {
         ct state new log level warn prefix "drop-incoming: ";
 
         ##> drop
-        #ip  protocol tcp reject with tcp reset;
-        #ip6 nexthdr  tcp reject with tcp reset;
         drop;
     }
 
@@ -78,14 +90,17 @@ table inet filter {
         # skip on loopback
         oif lo accept;
 
+        # stateful
         jump global_stateful;
-        jump global_icmp;
 
         #> Essential communication
+        ##> ICMP essentials
+        jump global_icmp_local;
+        jump global_icmpv6_local;
 
-        ##> IPv6
-        ip6 nexthdr icmpv6 icmpv6 type nd-neighbor-solicit accept;
-        ip6 nexthdr icmpv6 icmpv6 type nd-router-solicit accept;
+        ##> ICMP Ping
+        ip protocol icmp icmp type echo-request accept;
+        ip6 nexthdr icmpv6 icmpv6 type echo-request accept;
 
         ##> DHCPv4 client
         ip protocol udp udp sport 68 udp dport 67 accept;
@@ -99,8 +114,7 @@ table inet filter {
         tcp dport 22 accept;
 
         ##> DNS
-        tcp dport 53 accept;
-        udp dport 53 accept;
+        meta l4proto { tcp, udp } th dport 53 accept;
 
         ##> NTP
         udp dport 123 accept;
@@ -137,6 +151,7 @@ table inet filter {
         type filter hook forward priority 0;
         policy drop;
 
+        # stateful
         jump global_stateful;
 
         #> log before drop
@@ -145,23 +160,196 @@ table inet filter {
     }
 
 
+    # allow connections based on ct state
     chain global_stateful {
-        # allow connections based on ct state
+        # accept packets for which a ct state already exists
         ct state established,related accept;
+    }
+
+
+    # drop connections based on ct state
+    chain global_out_of_state {
+        # drop new TCP connections with bogus flags
+        ct state new \
+          tcp flags & (syn|ack|fin|rst) != syn \
+          drop;
+
+        # drop invalid ct state
         ct state invalid drop;
     }
 
 
-    chain global_icmp {
-        # ICMP essentials (IPv4)
-        ip protocol icmp icmp type echo-request limit rate 5/second accept;
-        ip protocol icmp icmp type destination-unreachable accept;
-        ip protocol icmp icmp type time-exceeded accept;
+    chain global_ingress_block {
+        # Drop all fragments
+        ip frag-off & 0x1fff != 0 drop;
 
-        # ICMP essentials (IPv6)
-        ip6 nexthdr icmpv6 icmpv6 type echo-request limit rate 5/second accept;
-        ip6 nexthdr icmpv6 icmpv6 type destination-unreachable accept;
-        ip6 nexthdr icmpv6 icmpv6 type time-exceeded accept;
+        # Drop TCP XMAS packets
+        tcp flags & (fin|psh|urg) == (fin|psh|urg) drop;
+
+        # Drop TCP odd flag combinations
+        tcp flags & (fin|syn) == (fin|syn) drop;
+        tcp flags & (syn|rst) == (syn|rst) drop;
+        tcp flags & (fin|rst) == (fin|rst) drop;
+        tcp flags & (fin|ack) == (fin) drop;
+        tcp flags & (urg|ack) == (urg) drop;
+        tcp flags & (psh|ack) == (psh) drop;
+
+        # Drop TCP NULL packets
+        tcp flags & (fin|syn|rst|psh|ack|urg) == 0x0 drop;
+
+        # Drop uncommon MSS values
+        tcp flags syn tcp option maxseg size 1-535 drop;
+    };
+
+
+    # Handle IPv4 ICMP traffic for the input/output chains
+    # loosely based on "draft-ietf-opsec-icmp-filtering-04",
+    # https://datatracker.ietf.org/doc/html/draft-ietf-opsec-icmp-filtering-04
+    #
+    # -> 2.  Internet Control Message Protocol version 4 (ICMP)
+
+    chain global_icmp_local {
+        #> Destination Unreachable (Type 3)
+        #  accept code 0-5, 7, 11-15
+        #  drop   code 6, 8
+        #  ???    code 9-10
+        ip protocol icmp icmp type 3 icmp code {0-5, 7, 11-15} accept;
+        ip protocol icmp icmp type 3 icmp code {6, 8} drop;
+
+        #> Source Quench (Type 4, Code 0)
+        ip protocol icmp icmp type 4 drop;
+
+        #> Redirect (Type 5)
+        # -- draft recommends accept/rate limiting, but drop it here
+        ip protocol icmp icmp type 5 drop;
+
+        #> Time Exceeded (Type 11)
+        ip protocol icmp icmp type 11 icmp code {0-1} accept;
+
+        #> Parameter Problem (Type 12)
+        ip protocol icmp icmp type 12 icmp code {0-1} accept;
+
+        #> Echo Request (Type 8)
+        ip protocol icmp icmp type 8 icmp code 0 limit rate 5/second accept;
+
+        #> Echo Reply (Type 0)
+        # use global_stateful instead
+        
+        #> Router Solicitation or Router Advertisement message
+        #  * Router Advertisement Message (Type 9, Code 0)
+        #  * Router Solicitation Message (Type 10, Code 0)
+        # -- draft recommends accept/rate limiting, but drop it here
+        #> Timestamp Message (Type 13, Code 0)
+        # -- draft recommends accept/rate limiting, but drop it here
+        #> Timestamp Reply Message (Type 14, Code 0)
+        # -- draft recommends accept/rate limiting, but drop it here
+        #> Information Request Message (Type 15, Code 0)
+        #> Information Reply Message (Type 16, Code 0)
+        #> Address Mask Request (Type 17, Code 0)
+        # -- draft recommends accept/rate limiting, but drop it here
+        #> Address Mask Reply (Type 18, Code 0)
+        # -- draft recommends accept/rate limiting, but drop it here
+        ip protocol icmp icmp type {9-10, 13-18} drop;
+    }
+
+    # Handle IPv6 ICMP traffic for the input/output chains
+    # input / output
+    # RFC 4890 Section 4.4
+    #   4.4.  Recommendations for ICMPv6 Local Configuration Traffic
+    #   4.4.1.  Traffic That Must Not Be Dropped
+    #   4.4.2.  Traffic That Normally Should Not Be Dropped
+    #   4.4.4.  Traffic for Which a Policy Should Be Defined
+    #   4.4.5.  Traffic That Should Be Dropped Unless a Good Case Can Be Made
+    #
+    chain global_icmpv6_local {
+        #> [4.4.1] Destination Unreachable (Type 1) - All codes
+        ip6 nexthdr icmpv6 icmpv6 type 1 accept;
+
+        #> [4.4.1] Packet Too Big (Type 2)
+        ip6 nexthdr icmpv6 icmpv6 type 2 accept;
+
+        #> [4.4.1] Time Exceeded (Type 3) - Code 0 only
+        #> [4.4.2] Time Exceeded (Type 3) - Code 1
+        ip6 nexthdr icmpv6 icmpv6 type 3 icmpv6 code 0-1 accept;
+
+        #> [4.4.1] Parameter Problem (Type 4) - Codes 1 and 2 only
+        #> [4.4.2] Parameter Problem (Type 4) - Code 0
+        ip6 nexthdr icmpv6 icmpv6 type 4 icmpv6 code 0-2 accept;
+
+        #> [4.4.1] Echo Request (Type 128)
+        ip6 nexthdr icmpv6 icmpv6 type 128 limit rate 5/second accept;
+
+        ## echo response not needed, include global_stateful instead
+        ## #> [4.4.1] Echo Response (Type 129)
+        ## ip6 nexthdr icmpv6 icmpv6 type 129 limit rate 5/second accept;
+
+        #> [4.4.1] Router Solicitation (Type 133)
+        ip6 nexthdr icmpv6 icmpv6 type 133 accept;
+
+        #> [4.4.1] Router Advertisement (Type 134)
+        ip6 nexthdr icmpv6 icmpv6 type 134 accept;
+
+        #> [4.4.1] Neighbor Solicitation (Type 135)
+        ip6 nexthdr icmpv6 icmpv6 type 135 accept;
+
+        #> [4.4.1] Neighbor Advertisement (Type 136)
+        ip6 nexthdr icmpv6 icmpv6 type 136 accept;
+
+        #> [4.4.1] Inverse Neighbor Discovery Solicitation (Type 141)
+        ip6 nexthdr icmpv6 icmpv6 type 141 accept;
+
+        #> [4.4.1] Inverse Neighbor Discovery Advertisement (Type 142)
+        ip6 nexthdr icmpv6 icmpv6 type 142 accept;
+
+        #> [4.4.1] Listener Query (Type 130)
+        ip6 nexthdr icmpv6 icmpv6 type 130 accept;
+
+        #> [4.4.1] Listener Report (Type 131)
+        ip6 nexthdr icmpv6 icmpv6 type 131 accept;
+
+        #> [4.4.1] Listener Done (Type 132)
+        ip6 nexthdr icmpv6 icmpv6 type 132 accept;
+
+        #> [4.4.1] Listener Report v2 (Type 143)
+        ip6 nexthdr icmpv6 icmpv6 type 143 accept;
+
+        #> [4.4.1] Certificate Path Solicitation (Type 148)
+        ip6 nexthdr icmpv6 icmpv6 type 148 accept;
+
+        #> [4.4.1] Certificate Path Advertisement (Type 149)
+        ip6 nexthdr icmpv6 icmpv6 type 149 accept;
+
+        #> [4.4.1] Multicast Router Advertisement (Type 151)
+        ip6 nexthdr icmpv6 icmpv6 type 151 accept;
+
+        #> [4.4.1] Multicast Router Solicitation (Type 152)
+        ip6 nexthdr icmpv6 icmpv6 type 152 accept;
+
+        #> [4.4.1] Multicast Router Termination (Type 153)
+        ip6 nexthdr icmpv6 icmpv6 type 153 accept;
+
+        #> [4.4.4] Redirect (Type 137)
+        ip6 nexthdr icmpv6 icmpv6 type 137 drop;
+
+        #> [4.4.4] Node Information Query (Type 139)
+        ip6 nexthdr icmpv6 icmpv6 type 139 drop;
+
+        #> [4.4.4] Node Information Response (Type 140)
+        ip6 nexthdr icmpv6 icmpv6 type 140 drop;
+
+        #> [4.4.4] Unallocated Error messages
+        # (Types 5-99 inclusive and 102-126 inclusive)
+        ip6 nexthdr icmpv6 icmpv6 type {5-99, 102-126} drop;
+
+        #> [4.4.5] experimental allocations: Types 100, 101, 200, and 201.
+        ip6 nexthdr icmpv6 icmpv6 type {100, 101, 200, 201} drop;
+
+        #> [4.4.5] extension type numbers: Types 127 and 255.
+        ip6 nexthdr icmpv6 icmpv6 type {127, 255} drop;
+
+        #> [4.4.5] informational messages with types not explicitly assigned by IANA:
+        #  Types 154-199 inclusive and 202-254 inclusive
+        ip6 nexthdr icmpv6 icmpv6 type {154-199, 202-254} drop;
     }
 
 
@@ -175,6 +363,7 @@ table inet filter {
             192.168.0.0/16,
         };
     }
+
 
     set net_ula {
         type ipv6_addr;
