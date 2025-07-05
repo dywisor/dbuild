@@ -170,6 +170,11 @@ def main_gen_expand_build_collections(cfg, wanted):
     collections_todo_dep   = collections.OrderedDict()
     collections_dep_late   = set()
 
+    # collection names referenced as order-only dep:
+    # when False or not found => strict dep
+    # when True => order-only dep
+    collections_order_only_map = {}
+
     ## scan for additional dependencies
     collections_todo_scan = wanted
 
@@ -178,6 +183,9 @@ def main_gen_expand_build_collections(cfg, wanted):
 
         for name in collections_todo_scan:
             if name not in collections_todo_dep:
+                # any scanned collection is a strict dep and not order-only
+                collections_order_only_map[name] = False
+
                 bcol_dir = cfg.project_bcol_root / name
 
                 dep_set = set()
@@ -205,26 +213,51 @@ def main_gen_expand_build_collections(cfg, wanted):
 
                     if bcol_meta_config:
                         bcol_is_virtual = bcol_meta_config_parser.getboolean('collection', 'virtual', fallback=False)
+                        add_order_only_late_dep = False
 
                         # depends X: add dep on X, enqueue scanning of X
                         for item in section_iter_list(bcol_meta_config, 'depends'):
                             if item == '*':
-                                # depend on most/all other collections,
-                                # evaluated after dep expansion
-                                # Not allowed for virtual collections
-                                if not bcol_is_virtual:
-                                    collections_dep_late.add(name)
-                                else:
-                                    raise RuntimeError('late-dep on all not allowed for virtual collections')
+                                # NOTE: DEPRECATED: should use 'after = *' instead
+                                add_order_only_late_dep = True
+
                             else:
                                 dep_set.add(item)
                                 collections_todo_scan_next.append(item)
+                                # no need to mark <item> as strict dep in collections_order_only_map here,
+                                # will be done during subsequent scan iteration
                         # --
 
                         # wants X: enqueue scanning of X
                         for item in section_iter_list(bcol_meta_config, 'wants'):
                             collections_todo_scan_next.append(item)
+                            # no need to mark <item> as strict dep in collections_order_only_map here,
+                            # will be done during subsequent scan iteration
                         # --
+
+                        # after X: order-only dependency on X,
+                        # but do not enqueue scanning of X
+                        for item in section_iter_list(bcol_meta_config, 'after'):
+                            if item == '*':
+                                add_order_only_late_dep = True
+
+                            else:
+                                dep_set.add(item)
+
+                                # mark as order-only dep if not already marked
+                                # (which may be either 'strict dep' or 'only-order' dep)
+                                collections_order_only_map.setdefault(item, True)
+                        # --
+
+                        if add_order_only_late_dep:
+                            # depend on most/all other collections,
+                            # evaluated after dep expansion
+                            # Not allowed for virtual collections
+                            if not bcol_is_virtual:
+                                collections_dep_late.add(name)
+                            else:
+                                raise RuntimeError('late-dep on all not allowed for virtual collections', name)
+                        # -- end if
                     # -- end if
                 # -- end if have collection meta config file
 
@@ -235,6 +268,12 @@ def main_gen_expand_build_collections(cfg, wanted):
             collections_todo_scan = collections_todo_scan_next
         # -- end for
     # -- end while scan for dependencies
+
+    # filter-out order-only dependencies
+    # that are not pulled in by any collection as strict dep
+    collections_order_only = set((k for k, v in collections_order_only_map.items() if v))
+    for dep in collections_todo_dep.values():
+        dep.difference_update(collections_order_only)
 
     # evaluate late dependencies
     collections_dep_early = set((
