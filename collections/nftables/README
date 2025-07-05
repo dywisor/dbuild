@@ -1,10 +1,6 @@
 config file paths:
 
-overlay/customize/etc/nftables.conf.dist
-
-  Specific firewall configuration for the rootfs.
-
-overlay/customize/etc/nftables.conf.initramfs
+files/nftables.conf.initramfs
 
   Early firewall configuration.
 

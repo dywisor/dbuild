@@ -2,3 +2,7 @@
 # This file list variable names that should be merged instead.
 # format: one varname per line
 OCONF_BOOT_CMDLINE
+OCONF_NFTABLES_ALLOW_INPUT_TCP
+OCONF_NFTABLES_ALLOW_INPUT_UDP
+OCONF_NFTABLES_ALLOW_OUTPUT_TCP
+OCONF_NFTABLES_ALLOW_OUTPUT_UDP

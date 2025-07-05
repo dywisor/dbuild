@@ -4,7 +4,9 @@
 #
 #   chain prerouting            -- block out-of-state, invalid packets
 #   chain input                 -- allow ICMP, DHCP client, SSH; drop anything else
+#   chain input_local           -- input sub-chain for local overrides
 #   chain output                -- allow ICMP, DHCP client, SSH, DNS/NTP, HTTP(S), acng; reject anything else
+#   chain output_local          -- output sub-chain for local overrides
 #   chain forward               -- drop everything (except for stateful)
 #   chain global_stateful       -- common helper for ct state
 #   chain global_out_of_state   -- common helper for dropping out-of-state packets
@@ -22,6 +24,14 @@ flush ruleset;
 
 #> Ruleset
 table inet filter {
+
+    chain input_local {
+        # local overrides
+    }
+
+    chain output_local {
+        # local overrides
+    }
 
     chain prerouting {
         type filter hook prerouting priority -150;
@@ -69,6 +79,9 @@ table inet filter {
 
         ##> SSH
         tcp dport 22 accept;
+
+        ##> local rules
+        jump input_local;
 
         #> CLEANUP
         ##> drop broadcast/multicast silently
@@ -131,6 +144,9 @@ table inet filter {
         ##> web proxy
         ip daddr @net_rfc1918 tcp dport { 3128, 8080 } accept;
         ip6 daddr @net_ula tcp dport { 3128, 8080 } accept;
+
+        #> local rules
+        jump output_local;
 
         #> CLEANUP
         ##> drop broadcast/multicast silently

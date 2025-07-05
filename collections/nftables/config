@@ -1,0 +1,17 @@
+# Whether to allow specific tcp/udp ports in the input/output chain
+#
+#   This is a value-merged variable,
+#   (re)setting it will extend its original value.
+#
+#   Note that only port numbers are accepted,
+#   network service names such as "http" are not supported, currently.
+#   This helps to keep the deduplication logic simple,
+#   but feel free to raise an issue if names are required.
+#
+OFEAT_NFTABLES_ALLOW_INPUT*=1
+OCONF_NFTABLES_ALLOW_INPUT_TCP*=''
+OCONF_NFTABLES_ALLOW_INPUT_UDP*=''
+
+OFEAT_NFTABLES_ALLOW_OUTPUT*=1
+OCONF_NFTABLES_ALLOW_OUTPUT_TCP*=''
+OCONF_NFTABLES_ALLOW_OUTPUT_UDP*=''
