@@ -204,7 +204,7 @@ OCONF_SSHD_GID_FORWARDING*="902"
 # Packages Installation
 # ---------------------
 
-# feature: Whether to install packages listed in OCONF_PKG_INSTALL on first boot
+# feature: Whether to install packages listed in OCONF_PKG_INSTALL
 OFEAT_PKG_INSTALL*=1
 
 # List of packages to be installed
