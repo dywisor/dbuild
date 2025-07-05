@@ -1,0 +1,11 @@
+# Enable unattended upgrades
+OFEAT_UNATTENDED_UPGRADES*=1
+
+# Enable automatic reboots
+OFEAT_UNATTENDED_UPGRADES_REBOOT*=1
+
+# Reboot even when users are logged in
+OFEAT_UNATTENDED_UPGRADES_REBOOT_WITH_USERS*=1
+
+# Reboot time
+OCONF_UNATTENDED_UPGRADES_REBOOT_TIME*='07:45'
