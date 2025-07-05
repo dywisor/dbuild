@@ -1,0 +1,3 @@
+[collection]
+Depends = base
+After = nftables

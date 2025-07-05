@@ -1,0 +1,35 @@
+# default reverse proxy configuration
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    server_name localhost;
+
+    root /var/www/empty;
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+
+    server_name localhost;
+
+    ssl_certificate_key /etc/nginx/ssl/server.key;
+    ssl_certificate     /etc/nginx/ssl/server.crt;
+
+    root /var/www/static;
+    index index.html;
+
+    include snippets/ssl-params.conf;
+    #include snippets/ssl-params-hsts.conf;
+
+    # default reverse proxy configuration
+    include snippets/security-headers.conf;
+    include snippets/method-static.conf;
+
+    # using default request size limits
+}
