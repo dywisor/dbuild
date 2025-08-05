@@ -1,0 +1,55 @@
+#!/bin/sh
+# Usage: firstboot-rename-network-interface <iface_old> <iface_new> [<iface_index>]
+#
+set -fu
+
+while getopts 'h' opt; do
+    case "${opt}" in
+        'h')
+            printf 'Usage: %s <iface_old> <iface_new> [<iface_index>]\n' "${0}"
+            exit 0
+        ;;
+        *)
+            printf 'Usage error.\n' 1>&2
+            exit 64
+        ;;
+    esac
+done
+
+shift $(( OPTIND - 1 ))
+
+iface_old="${1:?}"
+iface_new="${2:?}"
+index="${3:-10}"
+
+outfile="/etc/systemd/network/${index}-${iface_new}.link"
+
+if [ -e "${outfile}" ] || [ -h "${outfile}" ]; then
+    # TOCTOU race accepted here
+    printf 'Output file does not already exist: %s\n' "${outfile}" 1>&2
+    exit 1
+fi
+
+mac=
+if ! { read -r mac < "/sys/class/net/${iface_old}/address" && [ -n "${mac}" ]; }; then
+    printf 'Failed to get mac address of interface %s\n' "${iface_old}" 1>&2
+    exit 5
+fi
+
+{
+cat << EOF
+[Match]
+Type       = ether
+MACAddress = ${mac}
+
+[Link]
+NamePolicy =
+Name       = ${iface_new}
+EOF
+} > "${outfile}" || exit
+
+
+printf 'Wrote: %s\n' "${outfile}"
+printf 'Changes will be applied on next reboot\n'
+printf 'You need to run: update-initramfs -u\n'
+exit 0
