@@ -9,9 +9,18 @@ SSHD_SYSTEM_AUTH_KEYS_DIR='/etc/ssh/authorized_keys'
 SSHD_HOST_KEY_TYPES='rsa ed25519'
 
 sshd_setup() {
+    local gr_gid
+    local login_gid
+
+    login_gid=
+    if [ -n "${OCONF_SSHD_GROUP_LOGIN-}" ]; then
+        target_getgrnam_id "${OCONF_SSHD_GROUP_LOGIN:?}" && login_gid="${gr_gid?}"
+    fi
+    [ -n "${login_gid}" ] || login_gid='0'
+
     dodir_mode "${TARGET_ROOTFS:?}/${SSHD_CONFDIR}" 0755 '0:0' || return
     dodir_mode "${TARGET_ROOTFS:?}/${SSHD_INCLUDE_CONFDIR}" 0700 '0:0' || return
-    dodir_mode "${TARGET_ROOTFS:?}/${SSHD_SYSTEM_AUTH_KEYS_DIR}" 0710 "0:${OCONF_SSHD_GID_LOGIN:-0}" || return
+    dodir_mode "${TARGET_ROOTFS:?}/${SSHD_SYSTEM_AUTH_KEYS_DIR}" 0710 "0:${login_gid}" || return
     dofile "${TARGET_ROOTFS:?}/${SSHD_CONF_FILE}" 0600 '0:0' gen_sshd_config || return
     sshd_setup_create_host_keys || return
 }

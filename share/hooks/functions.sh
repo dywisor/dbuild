@@ -360,3 +360,86 @@ verify_file_checksum() {
 
     verify_file_checksum_generic sha512sum "${checksum_file}" "${1:?}"
 }
+
+# target_getpwnam_id ( name, **TARGET_ROOTFS, **pw_uid!, **pw_gid! )
+#
+#   Gets the uid and primary gid of a user from the target rootfs, specified by name.
+#
+target_getpwnam_id() {
+    pw_uid=
+    pw_gid=
+
+    local name
+    local target_passwd_file
+    local getent_buf
+
+    name="${1:?}"
+
+    target_passwd_file="${TARGET_ROOTFS:?}/etc/passwd"
+    [ -r "${target_passwd_file}" ] || return 2
+
+    getent_buf="$(
+        < "${target_passwd_file}" awk -F ':' -v name="${name}" \
+'
+BEGIN { exit_code = 1; }
+
+($1 == name) {
+    printf("%s %s\n", $3, $4);
+    exit_code = 0;
+    exit;
+}
+
+END { exit exit_code; }
+'
+    )" && [ -n "${getent_buf}" ] || return 1
+
+    case "$-" in
+        *f*)
+            set -- ${getent_buf}
+        ;;
+        *)
+            set -f
+            set -- ${getent_buf}
+            set +f
+        ;;
+    esac
+
+    [ $# -eq 2 ] || return 1
+
+    pw_uid="${1}"
+    pw_gid="${2}"
+}
+
+# target_getgrnam_id ( name, **TARGET_ROOTFS, **gr_gid! )
+#
+#   Gets the gid of a group from the target rootfs, specified by name.
+#
+target_getgrnam_id() {
+    gr_gid=
+
+    local name
+    local target_group_file
+    local getent_buf
+
+    name="${1:?}"
+
+    target_group_file="${TARGET_ROOTFS:?}/etc/group"
+    [ -r "${target_group_file}" ] || return 2
+
+    getent_buf="$(
+        < "${target_group_file}" awk -F ':' -v name="${name}" \
+'
+BEGIN { exit_code = 1; }
+
+($1 == name) {
+    printf("%s\n", $3);
+    exit_code = 0;
+    exit;
+}
+
+END { exit exit_code; }
+'
+    )" && [ -n "${getent_buf}" ] || return 1
+
+    gr_gid="${getent_buf}"
+}
