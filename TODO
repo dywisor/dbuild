@@ -1,3 +1,4 @@
+* switch mmdebstrap mode from fakeroot to unshare?
 * collections/kvm
   - initramfs first-boot hook
     - cloud-init?
