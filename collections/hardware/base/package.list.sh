@@ -13,9 +13,22 @@ fi
 
 # LUKS?
 if [ "${OFEAT_HW_ROOT_VG_LUKS:-0}" -eq 1 ]; then
-    printf '%s\n' \
-        cryptsetup \
-        cryptsetup-initramfs
+    case "${DBUILD_TARGET_CODENAME:?}" in
+        'buster'|'bullseye'|'bookworm')
+            # Debian 12 compat (<= 12)
+            printf '%s\n' \
+                cryptsetup \
+                cryptsetup-initramfs
+        ;;
+
+        *)
+            # Debian >= 13
+            printf '%s\n' \
+                cryptsetup \
+                cryptsetup-initramfs \
+                systemd-cryptsetup
+        ;;
+    esac
 fi
 
 # (LVM is always enabled)
