@@ -705,7 +705,7 @@ def parse_disk_config(disk_config_data):
             return (mnt_dir == root or mnt_dir.startswith(f'{root}/'))
 
         if fstype == FilesystemType.SWAP:
-            return ['sw,nofail']
+            return ['sw', 'nofail']
 
         elif name == 'root':
             mnt_opts = ['defaults', 'rw', 'relatime']
@@ -1233,7 +1233,7 @@ def main_create_disk_image(arg_config, env, disk_config, mount_root, outdir, roo
                         mnt_fsname=blk_dev,
                         mnt_dir='none',
                         mnt_type='swap',
-                        mnt_opts=mnt_opts,
+                        mnt_opts=','.join(mnt_opts),
                     )
                 )
             )
