@@ -1,0 +1,26 @@
+# whether to enable nginx service autostart
+OFEAT_NGINX_AUTOSTART*=1
+
+# The nginx web server will be configured w/ TLS enabled
+# and will use a dummy certificate generated at build-time.
+# This is only meant for bootstrap/testing purposes
+# and should be replaced by a proper certificate later on.
+# You may configure the subject and the lifetime of that certificate here.
+# Do *not* set these to an empty value.
+OCONF_NGINX_TLS_CERT_SUBJECT*='/O=dbuild/OU=factory/CN=localhost'
+OCONF_NGINX_TLS_CERT_LIFETIME*='365'
+
+# nginx configuration role
+# choose from:
+#   - none (or empty string): no vhost configuration
+#     This may or may not result in a crashing nginx
+#   - see roles/nginx/default for other options
+#
+#  NOTE: This feature is not implemented in the nginx-base collection.
+#        Include a nginx config collection to enable it, e.g. roles/nginx/default
+OCONF_NGINX_CONFIG_ROLE*='none'
+
+# nftables: allow http/https in input chain
+# (since nftables is not a strict dep,
+# use if-defined syntax here (?=))
+OCONF_NFTABLES_ALLOW_INPUT_TCP?='80 443'

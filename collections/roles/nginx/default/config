@@ -1,15 +1,3 @@
-# whether to enable nginx service autostart
-OFEAT_NGINX_AUTOSTART*=1
-
-# The nginx web server will be configured w/ TLS enabled
-# and will use a dummy certificate generated at build-time.
-# This is only meant for bootstrap/testing purposes
-# and should be replaced by a proper certificate later on.
-# You may configure the subject and the lifetime of that certificate here.
-# Do *not* set these to an empty value.
-OCONF_NGINX_TLS_CERT_SUBJECT*='/O=dbuild/OU=factory/CN=localhost'
-OCONF_NGINX_TLS_CERT_LIFETIME*='365'
-
 # nginx configuration role
 # choose from:
 #   - static: web server hosting static content
@@ -18,7 +6,7 @@ OCONF_NGINX_TLS_CERT_LIFETIME*='365'
 #     (see also OCONF_NGINX_APP_PROXY_PASS)
 #   - none (or empty string): no vhost configuration
 #     This may or may not result in a crashing nginx
-OCONF_NGINX_CONFIG_ROLE*='app'
+OCONF_NGINX_CONFIG_ROLE='app'
 
 # additional configuration for "app" role:
 #
@@ -36,8 +24,3 @@ OCONF_NGINX_CONFIG_ROLE*='app'
 # Do *not* include a equal sign character '=' in the value,
 # as that is reserved for internal purposes (sed-edit).
 OCONF_NGINX_APP_PROXY_PASS*='3000'
-
-# nftables: allow http/https in input chain
-# (since nftables is not a strict dep,
-# use if-defined syntax here (?=))
-OCONF_NFTABLES_ALLOW_INPUT_TCP?='80 443'
